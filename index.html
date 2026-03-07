@@ -24,7 +24,6 @@
         .control-btn {
             -webkit-tap-highlight-color: transparent;
         }
-        /* Custom scrollbar for leaderboard */
         #leaderboard-list::-webkit-scrollbar {
             width: 4px;
         }
@@ -34,57 +33,60 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-950">
 
-    <div class="flex flex-col md:flex-row items-center md:items-start justify-center gap-8 w-full max-w-6xl">
+    <!-- Main Wrapper with explicit width to prevent collapse on GitHub -->
+    <div class="w-full max-w-6xl flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12">
         
-        <!-- Leaderboard Section -->
-        <div id="leaderboard-section" class="order-2 md:order-1 w-full max-w-xs bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 neon-border">
+        <!-- Leaderboard Section: Fixed width on desktop to prevent squashing -->
+        <aside id="leaderboard-section" class="order-2 md:order-1 w-full md:w-72 lg:w-80 bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 neon-border flex-shrink-0">
             <h2 class="text-xl font-black text-cyan-400 italic mb-4 uppercase tracking-wider flex justify-between items-center">
                 Global Top 10
                 <span id="loading-spinner" class="text-[10px] normal-case font-normal text-slate-500 animate-pulse">Syncing...</span>
             </h2>
-            <div id="leaderboard-list" class="space-y-2 font-mono text-sm max-h-[400px] overflow-y-auto pr-2">
+            <div id="leaderboard-list" class="space-y-2 font-mono text-sm max-h-[300px] md:max-h-[500px] overflow-y-auto pr-2">
                 <p class="text-slate-500 italic">Connecting to servers...</p>
             </div>
-        </div>
+        </aside>
 
-        <!-- Game Section -->
-        <div id="game-section" class="order-1 md:order-2 flex flex-col items-center">
-            <div id="game-ui" class="w-full max-w-2xl mb-4 flex justify-between items-end px-2">
+        <!-- Game Section: Fluid width with a solid max-width -->
+        <main id="game-section" class="order-1 md:order-2 flex flex-col items-center w-full max-w-xl">
+            <!-- Game UI -->
+            <div id="game-ui" class="w-full mb-4 flex justify-between items-end px-1">
                 <div>
-                    <h1 class="text-3xl font-black tracking-tighter neon-text uppercase italic">Maze Speedrun</h1>
-                    <p class="text-slate-400 text-sm font-mono uppercase tracking-tighter">LEVEL: <span id="level-display" class="text-cyan-400">1</span></p>
+                    <h1 class="text-2xl md:text-3xl font-black tracking-tighter neon-text uppercase italic">Maze Speedrun</h1>
+                    <p class="text-slate-400 text-xs md:text-sm font-mono uppercase tracking-tighter">LEVEL: <span id="level-display" class="text-cyan-400">1</span></p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs text-slate-500 uppercase font-bold">Time Limit: <span id="limit-display">10.0</span>s</p>
-                    <div id="timer-container" class="text-5xl font-mono font-bold text-cyan-400 tabular-nums">
+                    <p class="text-[10px] md:text-xs text-slate-500 uppercase font-bold">Time Limit: <span id="limit-display">10.0</span>s</p>
+                    <div id="timer-container" class="text-4xl md:text-5xl font-mono font-bold text-cyan-400 tabular-nums">
                         10.00
                     </div>
                 </div>
             </div>
 
-            <div class="relative bg-slate-900 rounded-xl p-2 border-2 border-slate-700 neon-border">
+            <!-- Canvas Container -->
+            <div id="canvas-container" class="relative w-full aspect-square bg-slate-900 rounded-xl p-1 md:p-2 border-2 border-slate-700 neon-border flex items-center justify-center">
                 <canvas id="mazeCanvas"></canvas>
                 
-                <!-- Screens -->
-                <div id="overlay" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center rounded-lg z-10 transition-opacity duration-300">
+                <!-- Overlay Screens -->
+                <div id="overlay" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center rounded-lg z-10 p-6">
                     <!-- Start Screen -->
-                    <div id="start-screen" class="text-center p-8">
+                    <div id="start-screen" class="text-center">
                         <h2 class="text-4xl font-black mb-4 text-cyan-400 italic">GO FAST</h2>
                         <p class="text-slate-300 mb-6 max-w-xs mx-auto text-sm">Clear the 6x6 maze before time runs out. Every level is 0.1s faster.</p>
                         <button onclick="startGame()" class="px-10 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-full transition-all transform hover:scale-105 active:scale-95 uppercase shadow-lg shadow-cyan-500/20">Start Run</button>
                     </div>
 
                     <!-- Game Over Screen -->
-                    <div id="gameover-screen" class="hidden text-center p-8 w-full max-w-sm">
+                    <div id="gameover-screen" class="hidden text-center w-full max-w-xs">
                         <h2 class="text-5xl font-black mb-2 text-rose-500 italic">OUT OF TIME</h2>
                         <p class="text-slate-400 mb-6">You reached Level <span id="final-level" class="text-white font-bold text-xl">0</span></p>
                         
                         <div id="score-submission" class="mb-6 space-y-3">
                             <input type="text" id="player-name" maxlength="15" placeholder="Enter Name" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-center text-white focus:outline-none focus:border-cyan-400 transition-colors">
-                            <div id="name-error" class="hidden text-rose-500 text-xs font-bold uppercase">Inappropriate name detected!</div>
-                            <button id="submit-btn" onclick="submitScore()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all disabled:opacity-50">Submit to Global Ranking</button>
+                            <div id="name-error" class="hidden text-rose-500 text-[10px] font-bold uppercase">Inappropriate name detected!</div>
+                            <button id="submit-btn" onclick="submitScore()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all disabled:opacity-50">Submit Score</button>
                         </div>
 
                         <button onclick="resetGame()" class="text-slate-400 hover:text-white uppercase text-xs font-bold tracking-widest underline underline-offset-4">Skip & Try Again</button>
@@ -93,23 +95,27 @@
             </div>
 
             <!-- Mobile Controls -->
-            <div id="mobile-controls" class="grid grid-cols-3 gap-2 mt-8 md:hidden">
+            <div id="mobile-controls" class="grid grid-cols-3 gap-3 mt-8 md:hidden">
                 <div></div>
-                <button onmousedown="handleMobileMove(0, -1)" ontouchstart="handleMobileMove(0, -1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 transition-all">
+                <button onmousedown="handleMobileMove(0, -1)" ontouchstart="handleMobileMove(0, -1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
                     <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path></svg>
                 </button>
                 <div></div>
-                <button onmousedown="handleMobileMove(-1, 0)" ontouchstart="handleMobileMove(-1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 transition-all">
+                <button onmousedown="handleMobileMove(-1, 0)" ontouchstart="handleMobileMove(-1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
                     <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <button onmousedown="handleMobileMove(0, 1)" ontouchstart="handleMobileMove(0, 1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 transition-all">
+                <button onmousedown="handleMobileMove(0, 1)" ontouchstart="handleMobileMove(0, 1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
                     <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
-                <button onmousedown="handleMobileMove(1, 0)" ontouchstart="handleMobileMove(1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0 transition-all">
+                <button onmousedown="handleMobileMove(1, 0)" ontouchstart="handleMobileMove(1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
                     <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>
-        </div>
+
+            <footer class="mt-8 text-slate-500 text-[10px] text-center uppercase tracking-[0.2em] font-bold">
+                FIXED 6x6 GRID &bull; 0.1s reduction/level &bull; Min 1.0s
+            </footer>
+        </main>
     </div>
 
     <script type="module">
@@ -117,7 +123,7 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration & Initialization
+        // Firebase Initialization
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'maze-speedrun-global';
         const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
@@ -128,32 +134,20 @@
         let globalScores = [];
         let leaderboardUnsubscribe = null;
 
-        // Content Moderation (Basic Filter)
+        // Content Moderation
         const RESTRICTED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore'];
         
         function isNameClean(name) {
             const lowerName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            // Simple match against restricted list
-            for (const term of RESTRICTED_TERMS) {
-                if (lowerName.includes(term)) return false;
-            }
-            // Check for common leetspeak substitutions
-            const leetName = lowerName
-                .replace(/0/g, 'o')
-                .replace(/1/g, 'i')
-                .replace(/3/g, 'e')
-                .replace(/4/g, 'a')
-                .replace(/5/g, 's')
-                .replace(/7/g, 't')
-                .replace(/8/g, 'b');
+            const check = (str) => RESTRICTED_TERMS.some(term => str.includes(term));
             
-            for (const term of RESTRICTED_TERMS) {
-                if (leetName.includes(term)) return false;
-            }
-            return true;
+            if (check(lowerName)) return false;
+            
+            const leet = lowerName.replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b');
+            return !check(leet);
         }
 
-        // Authentication Logic (Rule 3)
+        // Auth Sequence (Rule 3)
         const initAuth = async () => {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -163,25 +157,21 @@
                 }
             } catch (err) {
                 console.error("Auth failed:", err);
-                await signInAnonymously(auth).catch(e => {
-                    document.getElementById('leaderboard-list').innerHTML = `<p class="text-rose-500 italic text-xs">Auth Connection Failed</p>`;
-                });
+                await signInAnonymously(auth).catch(() => {});
             }
         };
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
-            if (user) {
-                if (!leaderboardUnsubscribe) {
-                    setupLeaderboardListener();
-                }
-            }
+            if (user && !leaderboardUnsubscribe) setupLeaderboardListener();
         });
 
         initAuth();
 
+        // Game Core
         const canvas = document.getElementById('mazeCanvas');
         const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvas-container');
         const timerDisplay = document.getElementById('timer-container');
         const levelDisplay = document.getElementById('level-display');
         const limitDisplay = document.getElementById('limit-display');
@@ -192,7 +182,6 @@
         const leaderboardList = document.getElementById('leaderboard-list');
         const loadingSpinner = document.getElementById('loading-spinner');
 
-        // Game State
         const FIXED_MAZE_SIZE = 6;
         const INITIAL_TIME_LIMIT = 10;
         let level = 1;
@@ -213,25 +202,23 @@
             }
         }
 
+        // Improved Canvas Sizing based on parent container
         function initCanvas() {
-            const containerSize = Math.min(window.innerWidth - 40, 500);
-            canvas.width = containerSize;
-            canvas.height = containerSize;
+            const size = Math.min(canvasContainer.clientWidth - 16, 500);
+            canvas.width = size;
+            canvas.height = size;
             cellSize = canvas.width / mazeSize;
         }
 
         function generateMaze(size) {
             mazeSize = size;
             cellSize = canvas.width / mazeSize;
-            maze = [];
-            for (let r = 0; r < mazeSize; r++) {
-                let row = [];
-                for (let c = 0; c < mazeSize; c++) row.push(new Cell(r, c));
-                maze.push(row);
-            }
+            maze = Array.from({ length: size }, (_, r) => Array.from({ length: size }, (_, c) => new Cell(r, c)));
+            
             let stack = [];
             let current = maze[0][0];
             current.visited = true;
+            
             while (true) {
                 let neighbors = getUnvisitedNeighbors(current);
                 if (neighbors.length > 0) {
@@ -257,8 +244,7 @@
         }
 
         function removeWalls(a, b) {
-            let dr = a.r - b.r;
-            let dc = a.c - b.c;
+            let dr = a.r - b.r; let dc = a.c - b.c;
             if (dr === 1) { a.walls[0] = false; b.walls[2] = false; }
             else if (dr === -1) { a.walls[2] = false; b.walls[0] = false; }
             if (dc === 1) { a.walls[3] = false; b.walls[1] = false; }
@@ -269,7 +255,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = "#334155";
             ctx.lineCap = "round";
-            ctx.lineWidth = 6;
+            ctx.lineWidth = Math.floor(canvas.width / 80);
             for (let r = 0; r < mazeSize; r++) {
                 for (let c = 0; c < mazeSize; c++) {
                     let x = c * cellSize; let y = r * cellSize;
@@ -349,8 +335,7 @@
 
         function updateUI() {
             timerDisplay.innerText = timeRemaining.toFixed(2);
-            if (timeRemaining < 3) timerDisplay.className = "text-5xl font-mono font-bold text-rose-500 tabular-nums";
-            else timerDisplay.className = "text-5xl font-mono font-bold text-cyan-400 tabular-nums";
+            timerDisplay.className = timeRemaining < 3 ? "text-4xl md:text-5xl font-mono font-bold text-rose-500 tabular-nums" : "text-4xl md:text-5xl font-mono font-bold text-cyan-400 tabular-nums";
         }
 
         function endGame() {
@@ -359,47 +344,33 @@
             overlay.classList.remove('hidden');
             gameoverScreen.classList.remove('hidden');
             document.getElementById('submit-btn').disabled = false;
-            document.getElementById('submit-btn').innerText = "Submit to Global Ranking";
-            document.getElementById('name-error').classList.add('hidden');
+            document.getElementById('submit-btn').innerText = "Submit Score";
         }
 
         window.submitScore = async function() {
-            if (!currentUser) {
-                document.getElementById('submit-btn').innerText = "Not Connected";
-                return;
-            }
+            if (!currentUser) return;
             const name = document.getElementById('player-name').value.trim() || "Anonymous";
             const submitBtn = document.getElementById('submit-btn');
             const errorLabel = document.getElementById('name-error');
             
             errorLabel.classList.add('hidden');
-
-            if (!isNameClean(name)) {
-                errorLabel.classList.remove('hidden');
-                return;
-            }
+            if (!isNameClean(name)) { errorLabel.classList.remove('hidden'); return; }
 
             submitBtn.disabled = true;
-            submitBtn.innerText = "Submitting...";
+            submitBtn.innerText = "Saving...";
 
             try {
                 const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                await addDoc(scoresCol, {
-                    name: name,
-                    level: level,
-                    timestamp: Date.now()
-                });
-                submitBtn.innerText = "Score Saved!";
+                await addDoc(scoresCol, { name: name, level: level, timestamp: Date.now() });
+                submitBtn.innerText = "Saved!";
                 setTimeout(() => resetGame(), 1000);
             } catch (e) {
-                console.error("Submission failed:", e);
-                submitBtn.innerText = "Error - Try again";
+                submitBtn.innerText = "Error!";
                 submitBtn.disabled = false;
             }
         }
 
         function setupLeaderboardListener() {
-            if (!currentUser) return;
             const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
             leaderboardUnsubscribe = onSnapshot(leaderboardCol, (snapshot) => {
                 loadingSpinner.style.display = 'none';
@@ -408,38 +379,33 @@
                 scores.sort((a, b) => b.level - a.level || a.timestamp - b.timestamp);
                 globalScores = scores.slice(0, 10);
                 updateLeaderboardUI();
-            }, (error) => {
-                console.error("Leaderboard Sync Error:", error);
+            }, () => {
                 loadingSpinner.style.display = 'none';
-                leaderboardList.innerHTML = `<p class="text-rose-500 italic text-xs">Sync Error - Check Connection</p>`;
+                leaderboardList.innerHTML = `<p class="text-rose-500 italic text-xs">Sync Error</p>`;
             });
         }
 
         function updateLeaderboardUI() {
             if (globalScores.length === 0) {
-                leaderboardList.innerHTML = `<p class="text-slate-500 italic">No global runs yet...</p>`;
+                leaderboardList.innerHTML = `<p class="text-slate-500 italic">No runs yet...</p>`;
                 return;
             }
             leaderboardList.innerHTML = globalScores.map((s, i) => `
-                <div class="flex justify-between items-center py-2 border-b border-slate-800 last:border-0 group">
-                    <div class="flex items-center gap-3">
+                <div class="flex justify-between items-center py-2 border-b border-slate-800 last:border-0">
+                    <div class="flex items-center gap-3 overflow-hidden">
                         <span class="${i < 3 ? 'text-cyan-400 font-black' : 'text-slate-600'}">#${i + 1}</span>
-                        <span class="text-slate-300 truncate max-w-[120px]">${s.name}</span>
+                        <span class="text-slate-300 truncate">${s.name}</span>
                     </div>
-                    <span class="text-cyan-500 font-bold">Lvl ${s.level}</span>
+                    <span class="text-cyan-500 font-bold ml-2">Lvl ${s.level}</span>
                 </div>
             `).join('');
         }
 
         function movePlayer(dx, dy) {
             if (!gameActive) return;
-            const currentCell = maze[player.y][player.x];
-            if (dx === 1 && currentCell.walls[1]) return;
-            if (dx === -1 && currentCell.walls[3]) return;
-            if (dy === 1 && currentCell.walls[2]) return;
-            if (dy === -1 && currentCell.walls[0]) return;
-            player.x += dx;
-            player.y += dy;
+            const cell = maze[player.y][player.x];
+            if ((dx === 1 && cell.walls[1]) || (dx === -1 && cell.walls[3]) || (dy === 1 && cell.walls[2]) || (dy === -1 && cell.walls[0])) return;
+            player.x += dx; player.y += dy;
             if (player.x === mazeSize - 1 && player.y === mazeSize - 1) nextLevel();
         }
 
