@@ -35,10 +35,9 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-950">
 
-    <!-- Main Wrapper with explicit width to prevent collapse on GitHub -->
     <div class="w-full max-w-6xl flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12">
         
-        <!-- Leaderboard Section: Fixed width on desktop to prevent squashing -->
+        <!-- Leaderboard Section -->
         <aside id="leaderboard-section" class="order-2 md:order-1 w-full md:w-72 lg:w-80 bg-slate-900/50 p-6 rounded-2xl border border-slate-700/50 neon-border flex-shrink-0">
             <h2 class="text-xl font-black text-cyan-400 italic mb-4 uppercase tracking-wider flex justify-between items-center">
                 Global Top 10
@@ -49,9 +48,8 @@
             </div>
         </aside>
 
-        <!-- Game Section: Fluid width with a solid max-width -->
+        <!-- Game Section -->
         <main id="game-section" class="order-1 md:order-2 flex flex-col items-center w-full max-w-xl">
-            <!-- Game UI -->
             <div id="game-ui" class="w-full mb-4 flex justify-between items-end px-1">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-black tracking-tighter neon-text uppercase italic">Maze Speedrun</h1>
@@ -65,20 +63,16 @@
                 </div>
             </div>
 
-            <!-- Canvas Container -->
             <div id="canvas-container" class="relative w-full aspect-square bg-slate-900 rounded-xl p-1 md:p-2 border-2 border-slate-700 neon-border flex items-center justify-center">
                 <canvas id="mazeCanvas"></canvas>
                 
-                <!-- Overlay Screens -->
                 <div id="overlay" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center rounded-lg z-10 p-6">
-                    <!-- Start Screen -->
                     <div id="start-screen" class="text-center">
                         <h2 class="text-4xl font-black mb-4 text-cyan-400 italic">GO FAST</h2>
                         <p class="text-slate-300 mb-6 max-w-xs mx-auto text-sm">Clear the 6x6 maze before time runs out. Every level is 0.1s faster.</p>
                         <button onclick="startGame()" class="px-10 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-full transition-all transform hover:scale-105 active:scale-95 uppercase shadow-lg shadow-cyan-500/20">Start Run</button>
                     </div>
 
-                    <!-- Game Over Screen -->
                     <div id="gameover-screen" class="hidden text-center w-full max-w-xs">
                         <h2 class="text-5xl font-black mb-2 text-rose-500 italic">OUT OF TIME</h2>
                         <p class="text-slate-400 mb-6">You reached Level <span id="final-level" class="text-white font-bold text-xl">0</span></p>
@@ -123,12 +117,16 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Initialization
+        // Firebase Initialization with safer defaults
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'maze-speedrun-global';
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        let app, auth, db;
+        if (firebaseConfig.apiKey) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        }
         
         let currentUser = null;
         let globalScores = [];
@@ -140,15 +138,14 @@
         function isNameClean(name) {
             const lowerName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
             const check = (str) => RESTRICTED_TERMS.some(term => str.includes(term));
-            
             if (check(lowerName)) return false;
-            
             const leet = lowerName.replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b');
             return !check(leet);
         }
 
         // Auth Sequence (Rule 3)
         const initAuth = async () => {
+            if (!auth) return;
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -161,12 +158,16 @@
             }
         };
 
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user && !leaderboardUnsubscribe) setupLeaderboardListener();
-        });
-
-        initAuth();
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user && !leaderboardUnsubscribe) setupLeaderboardListener();
+            });
+            initAuth();
+        } else {
+            document.getElementById('leaderboard-list').innerHTML = `<p class="text-slate-500 italic">Global features unavailable</p>`;
+            document.getElementById('loading-spinner').style.display = 'none';
+        }
 
         // Game Core
         const canvas = document.getElementById('mazeCanvas');
@@ -202,9 +203,14 @@
             }
         }
 
-        // Improved Canvas Sizing based on parent container
+        // Fixed initCanvas to handle race conditions during page load
         function initCanvas() {
-            const size = Math.min(canvasContainer.clientWidth - 16, 500);
+            let containerWidth = canvasContainer.clientWidth;
+            // If container isn't ready, retry in 50ms or use a fallback for the calculation
+            if (containerWidth <= 0) {
+                containerWidth = Math.min(window.innerWidth - 64, 500);
+            }
+            const size = Math.max(200, Math.min(containerWidth - 16, 500));
             canvas.width = size;
             canvas.height = size;
             cellSize = canvas.width / mazeSize;
@@ -252,10 +258,11 @@
         }
 
         function draw() {
+            if (cellSize <= 0) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = "#334155";
             ctx.lineCap = "round";
-            ctx.lineWidth = Math.floor(canvas.width / 80);
+            ctx.lineWidth = Math.max(2, Math.floor(canvas.width / 80));
             for (let r = 0; r < mazeSize; r++) {
                 for (let c = 0; c < mazeSize; c++) {
                     let x = c * cellSize; let y = r * cellSize;
@@ -285,13 +292,13 @@
         }
 
         window.startGame = function() {
+            initCanvas(); // Final size check
             level = 1;
             timeLimit = INITIAL_TIME_LIMIT;
             timeRemaining = timeLimit;
             overlay.classList.add('hidden');
             startScreen.classList.add('hidden');
             gameoverScreen.classList.add('hidden');
-            initCanvas();
             nextLevel(true);
             gameActive = true;
             lastTimestamp = performance.now();
@@ -348,7 +355,7 @@
         }
 
         window.submitScore = async function() {
-            if (!currentUser) return;
+            if (!currentUser || !db) return;
             const name = document.getElementById('player-name').value.trim() || "Anonymous";
             const submitBtn = document.getElementById('submit-btn');
             const errorLabel = document.getElementById('name-error');
@@ -371,6 +378,7 @@
         }
 
         function setupLeaderboardListener() {
+            if (!db) return;
             const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
             leaderboardUnsubscribe = onSnapshot(leaderboardCol, (snapshot) => {
                 loadingSpinner.style.display = 'none';
@@ -387,7 +395,7 @@
 
         function updateLeaderboardUI() {
             if (globalScores.length === 0) {
-                leaderboardList.innerHTML = `<p class="text-slate-500 italic">No runs yet...</p>`;
+                leaderboardList.innerHTML = `<p class="text-slate-500 italic">No global runs yet...</p>`;
                 return;
             }
             leaderboardList.innerHTML = globalScores.map((s, i) => `
@@ -419,10 +427,20 @@
             if (['d', 'arrowright'].includes(key)) movePlayer(1, 0);
         });
 
-        window.addEventListener('resize', () => { initCanvas(); draw(); });
-        initCanvas();
-        generateMaze(FIXED_MAZE_SIZE);
-        draw();
+        // Use ResizeObserver for more reliable layout updates
+        const resizeObserver = new ResizeObserver(() => {
+            initCanvas();
+            draw();
+        });
+        resizeObserver.observe(canvasContainer);
+
+        // Wait for everything to load before initial draw
+        window.onload = () => {
+            initCanvas();
+            generateMaze(FIXED_MAZE_SIZE);
+            draw();
+        };
+
     </script>
 </body>
 </html>
