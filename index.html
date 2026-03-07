@@ -338,7 +338,15 @@
         let mazeSize = FIXED_MAZE_SIZE;
         let cellSize = 0;
         let maze = [];
-        let player = { x: 0, y: 0, lastDir: 'right' };
+        let player = { 
+            x: 0, 
+            y: 0, 
+            visualX: 0, 
+            visualY: 0,
+            trail: [],
+            scaleX: 1,
+            scaleY: 1
+        };
         let gameActive = false;
         let lastTimestamp = 0;
 
@@ -393,6 +401,11 @@
             }
             player.x = 0;
             player.y = 0;
+            player.visualX = 0;
+            player.visualY = 0;
+            player.scaleX = 1;
+            player.scaleY = 1;
+            player.trail = [];
         }
 
         function getUnvisitedNeighbors(cell) {
@@ -438,8 +451,8 @@
             // Draw Goal (Yellow Floating Trophy)
             const goalX = (mazeSize - 1) * cellSize + cellSize / 2;
             const goalY = (mazeSize - 1) * cellSize + cellSize / 2;
-            const time = performance.now() / 1000;
-            const bobOffset = Math.sin(time * 5) * (cellSize * 0.1); 
+            const timeNow = performance.now() / 1000;
+            const bobOffset = Math.sin(timeNow * 5) * (cellSize * 0.1); 
             
             ctx.save();
             ctx.translate(goalX, goalY + bobOffset);
@@ -463,12 +476,27 @@
             ctx.beginPath(); ctx.arc(s * 0.8, -s * 0.4, s * 0.4, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
 
-            // Draw Player (Clean Blue Square)
-            const px = player.x * cellSize + cellSize / 2;
-            const py = player.y * cellSize + cellSize / 2;
+            // Draw Player Trail
+            player.trail.forEach((pos, i) => {
+                const ratio = (player.trail.length - i) / player.trail.length;
+                const trailSize = cellSize * 0.7 * ratio;
+                const tx = pos.x * cellSize + cellSize / 2;
+                const ty = pos.y * cellSize + cellSize / 2;
+                ctx.globalAlpha = 0.3 * ratio;
+                ctx.fillStyle = "#22d3ee";
+                ctx.beginPath();
+                ctx.roundRect(tx - trailSize/2, ty - trailSize/2, trailSize, trailSize, 4);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw Player (Clean Blue Square) with directional squash and stretch
+            const px = player.visualX * cellSize + cellSize / 2;
+            const py = player.visualY * cellSize + cellSize / 2;
             
             ctx.save();
             ctx.translate(px, py);
+            ctx.scale(player.scaleX, player.scaleY);
             
             const pSize = cellSize * 0.7;
             ctx.fillStyle = "#22d3ee"; 
@@ -529,6 +557,41 @@
             if (!gameActive) return;
             const delta = (timestamp - lastTimestamp) / 1000;
             lastTimestamp = timestamp;
+            
+            // Motion handling
+            const lerpSpeed = 0.35; 
+            const prevVisualX = player.visualX;
+            const prevVisualY = player.visualY;
+            
+            player.visualX += (player.x - player.visualX) * lerpSpeed;
+            player.visualY += (player.y - player.visualY) * lerpSpeed;
+
+            // Handle Directional Squash and Stretch
+            const diffX = Math.abs(player.x - player.visualX);
+            const diffY = Math.abs(player.y - player.visualY);
+            
+            let targetScaleX = 1;
+            let targetScaleY = 1;
+
+            if (diffX > 0.01) {
+                targetScaleX = 1.3;
+                targetScaleY = 0.7;
+            } else if (diffY > 0.01) {
+                targetScaleX = 0.7;
+                targetScaleY = 1.3;
+            }
+
+            player.scaleX += (targetScaleX - player.scaleX) * 0.3;
+            player.scaleY += (targetScaleY - player.scaleY) * 0.3;
+
+            // Update Trail logic (restored and improved)
+            if (diffX > 0.001 || diffY > 0.001) {
+                player.trail.unshift({x: player.visualX, y: player.visualY});
+                if (player.trail.length > 10) player.trail.pop();
+            } else {
+                if (player.trail.length > 0) player.trail.pop();
+            }
+
             timeRemaining -= delta;
             if (timeRemaining <= 0) {
                 timeRemaining = 0;
@@ -579,7 +642,6 @@
             submitBtn.innerText = "Saving...";
             try {
                 const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                // Added uid to document so "Your Top" works
                 await addDoc(scoresCol, { 
                     name: name, 
                     level: level, 
@@ -639,9 +701,8 @@
 
         window.setTab = function(tab) {
             activeTab = tab;
-            leaderboardDisplayLimit = 10; // Reset limit when switching tabs
+            leaderboardDisplayLimit = 10; 
             
-            // Update UI buttons
             document.getElementById('tab-all').classList.remove('active');
             document.getElementById('tab-today').classList.remove('active');
             document.getElementById('tab-personal').classList.remove('active');
@@ -666,7 +727,6 @@
                 }
             }
 
-            // Sort filtered scores (Rule 2 logic)
             filteredScores.sort((a, b) => b.level - a.level || a.timestamp - b.timestamp);
 
             if (filteredScores.length === 0) {
