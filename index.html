@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maze Speedrun</title>
+    <title>Maze Speedrun - Global</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -83,6 +83,7 @@
                         
                         <div id="score-submission" class="mb-6 space-y-3">
                             <input type="text" id="player-name" maxlength="15" placeholder="Enter Name" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-center text-white focus:outline-none focus:border-cyan-400 transition-colors">
+                            <div id="name-error" class="hidden text-rose-500 text-xs font-bold uppercase">Inappropriate name detected!</div>
                             <button id="submit-btn" onclick="submitScore()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all disabled:opacity-50">Submit to Global Ranking</button>
                         </div>
 
@@ -127,6 +128,31 @@
         let globalScores = [];
         let leaderboardUnsubscribe = null;
 
+        // Content Moderation (Basic Filter)
+        const RESTRICTED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore'];
+        
+        function isNameClean(name) {
+            const lowerName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            // Simple match against restricted list
+            for (const term of RESTRICTED_TERMS) {
+                if (lowerName.includes(term)) return false;
+            }
+            // Check for common leetspeak substitutions
+            const leetName = lowerName
+                .replace(/0/g, 'o')
+                .replace(/1/g, 'i')
+                .replace(/3/g, 'e')
+                .replace(/4/g, 'a')
+                .replace(/5/g, 's')
+                .replace(/7/g, 't')
+                .replace(/8/g, 'b');
+            
+            for (const term of RESTRICTED_TERMS) {
+                if (leetName.includes(term)) return false;
+            }
+            return true;
+        }
+
         // Authentication Logic (Rule 3)
         const initAuth = async () => {
             try {
@@ -137,7 +163,6 @@
                 }
             } catch (err) {
                 console.error("Auth failed:", err);
-                // Retry anonymously on custom token failure
                 await signInAnonymously(auth).catch(e => {
                     document.getElementById('leaderboard-list').innerHTML = `<p class="text-rose-500 italic text-xs">Auth Connection Failed</p>`;
                 });
@@ -153,7 +178,6 @@
             }
         });
 
-        // Initialize Auth
         initAuth();
 
         const canvas = document.getElementById('mazeCanvas');
@@ -292,6 +316,7 @@
             overlay.classList.remove('hidden');
             startScreen.classList.remove('hidden');
             gameoverScreen.classList.add('hidden');
+            document.getElementById('name-error').classList.add('hidden');
         }
 
         function nextLevel(first = false) {
@@ -335,6 +360,7 @@
             gameoverScreen.classList.remove('hidden');
             document.getElementById('submit-btn').disabled = false;
             document.getElementById('submit-btn').innerText = "Submit to Global Ranking";
+            document.getElementById('name-error').classList.add('hidden');
         }
 
         window.submitScore = async function() {
@@ -344,12 +370,19 @@
             }
             const name = document.getElementById('player-name').value.trim() || "Anonymous";
             const submitBtn = document.getElementById('submit-btn');
+            const errorLabel = document.getElementById('name-error');
             
+            errorLabel.classList.add('hidden');
+
+            if (!isNameClean(name)) {
+                errorLabel.classList.remove('hidden');
+                return;
+            }
+
             submitBtn.disabled = true;
             submitBtn.innerText = "Submitting...";
 
             try {
-                // Rule 1: Use specific path
                 const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
                 await addDoc(scoresCol, {
                     name: name,
@@ -367,20 +400,13 @@
 
         function setupLeaderboardListener() {
             if (!currentUser) return;
-            
-            // Rule 1: Use specific path
             const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            
-            // Rule 2: Simple query, sorting in memory
             leaderboardUnsubscribe = onSnapshot(leaderboardCol, (snapshot) => {
                 loadingSpinner.style.display = 'none';
                 const scores = [];
                 snapshot.forEach(doc => scores.push(doc.data()));
-                
-                // Rule 2: Sort in memory
                 scores.sort((a, b) => b.level - a.level || a.timestamp - b.timestamp);
                 globalScores = scores.slice(0, 10);
-                
                 updateLeaderboardUI();
             }, (error) => {
                 console.error("Leaderboard Sync Error:", error);
