@@ -192,7 +192,6 @@
             const deduped = normalized.replace(/(.)\1+/g, '$1');
 
             // 5. Check against restricted list
-            // We check normalized, deduped, and the original to be safe
             const checkStrings = [normalized, deduped, rawLower.replace(/[^a-z0-9]/g, '')];
             
             for (const str of checkStrings) {
@@ -451,25 +450,27 @@
 
         window.shareScore = function() {
             const currentLevel = document.getElementById('final-level').innerText;
-            const text = `I just got a new High Score of ${currentLevel} on Maze Speedrun at https://games.damvan.ca!`;
+            // Combine text and link to ensure apps that only check 'text' or 'url' both get the full info
+            const shareText = `I just got a new High Score of ${currentLevel} on Maze Speedrun! Check it out at https://games.damvan.ca`;
             const shareBtn = document.getElementById('share-btn');
             
             if (navigator.share) {
                 navigator.share({
                     title: 'Maze Speedrun',
-                    text: text,
-                    url: 'https://games.damvan.ca'
+                    text: shareText
                 }).catch(() => {
-                    copyToClipboardFallback(text, shareBtn);
+                    copyToClipboardFallback(shareText, shareBtn);
                 });
             } else {
-                copyToClipboardFallback(text, shareBtn);
+                copyToClipboardFallback(shareText, shareBtn);
             }
         };
 
         function copyToClipboardFallback(text, button) {
             const input = document.createElement('textarea');
             input.value = text;
+            input.style.position = 'fixed'; // Avoid scrolling to bottom
+            input.style.opacity = '0';
             document.body.appendChild(input);
             input.select();
             try {
