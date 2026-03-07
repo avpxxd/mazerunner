@@ -165,6 +165,11 @@
         let leaderboardUnsubscribe = null;
         let leaderboardDisplayLimit = 10;
 
+        // Audio Objects
+        const goalAudio = new Audio('goal.mp3');
+        const warningAudio = new Audio('1sec.mp3');
+        let playedWarningSound = false;
+
         // Profanity Filter
         const RESTRICTED_TERMS = [
             'fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore',
@@ -368,6 +373,11 @@
         }
 
         function nextLevel(first = false) {
+            // Ensure warning audio stops when moving to next level
+            warningAudio.pause();
+            warningAudio.currentTime = 0;
+            playedWarningSound = false;
+            
             if (!first) {
                 level++;
                 timeLimit = Math.max(1.0, INITIAL_TIME_LIMIT - ((level - 1) * 0.1));
@@ -397,11 +407,24 @@
 
         function updateUI() {
             timerDisplay.innerText = timeRemaining.toFixed(2);
-            timerDisplay.className = timeRemaining < 3 ? "text-5xl md:text-6xl font-mono font-bold text-rose-500 tabular-nums" : "text-5xl md:text-6xl font-mono font-bold text-cyan-400 tabular-nums";
+            
+            if (timeRemaining < 1) {
+                timerDisplay.className = "text-5xl md:text-6xl font-mono font-bold text-rose-500 tabular-nums";
+                if (!playedWarningSound && gameActive) {
+                    warningAudio.play().catch(e => console.log("Audio play blocked by browser"));
+                    playedWarningSound = true;
+                }
+            } else {
+                timerDisplay.className = "text-5xl md:text-6xl font-mono font-bold text-cyan-400 tabular-nums";
+            }
         }
 
         function endGame() {
             gameActive = false;
+            // Stop warning audio on game end
+            warningAudio.pause();
+            warningAudio.currentTime = 0;
+            
             finalLevelSpan.innerText = level;
             overlay.classList.remove('hidden');
             gameoverScreen.classList.remove('hidden');
@@ -482,7 +505,6 @@
             }
             
             const displayScores = globalScores.slice(0, leaderboardDisplayLimit);
-            const titleSpan = document.querySelector('#leaderboard-section h2 span:first-child');
             const h2 = document.querySelector('#leaderboard-section h2');
             h2.innerHTML = `Global Top ${leaderboardDisplayLimit} <span id="loading-spinner" class="text-[10px] normal-case font-normal text-slate-500 animate-pulse" style="display:none">Syncing...</span>`;
 
@@ -496,7 +518,6 @@
                 </div>
             `).join('');
 
-            // Show "See More" only if there are more than 10 scores and we are currently at 10
             if (globalScores.length > 10 && leaderboardDisplayLimit === 10) {
                 seeMoreBtn.classList.remove('hidden');
             } else {
@@ -514,7 +535,16 @@
             const cell = maze[player.y][player.x];
             if ((dx === 1 && cell.walls[1]) || (dx === -1 && cell.walls[3]) || (dy === 1 && cell.walls[2]) || (dy === -1 && cell.walls[0])) return;
             player.x += dx; player.y += dy;
-            if (player.x === mazeSize - 1 && player.y === mazeSize - 1) nextLevel();
+            
+            if (player.x === mazeSize - 1 && player.y === mazeSize - 1) {
+                // Goal reached: Stop the 1sec warning audio immediately
+                warningAudio.pause();
+                warningAudio.currentTime = 0;
+                
+                goalAudio.currentTime = 0;
+                goalAudio.play().catch(e => console.log("Audio play blocked by browser"));
+                nextLevel();
+            }
         }
 
         window.handleMobileMove = (dx, dy) => movePlayer(dx, dy);
