@@ -218,6 +218,10 @@
                     <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>
+
+            <footer class="mt-8 text-slate-500 text-[10px] text-center uppercase tracking-[0.2em] font-bold">
+                Special Thanks To Mater, Branchy, & TheLocalAdmin For Bugfixing!
+            </footer>
         </main>
     </div>
 
@@ -269,6 +273,15 @@
 
         const RESTRICTED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore', 'retard', 'fag', 'nigga', 'bastard', 'cock', 'jerk', 'porn', 'sex', 'tit', 'boob', 'vagina', 'penis', 'cum', 'dumbass', 'jackass', 'motherfucker', 'twat', 'wanker', 'prick', 'bollocks', 'arse', 'chink', 'kike', 'spic', 'wetback', 'nazi', 'hitler', 'rape', 'pedo', 'homo', 'dyke', 'coon', 'jap', 'gook', 'negro', 'clit', 'labia', 'scrotum', 'twat', 'piss', 'shat', 'fart', 'boner'];
         
+        /**
+         * 🛡️ Helper to escape HTML characters to prevent XSS/Injection
+         */
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         function isNameClean(name) {
             if (!name || name.trim().length === 0) return false;
             const leetMap = {'0':'o', '1':'i', '2':'z', '3':'e', '4':'a', '5':'s', '6':'g', '7':'t', '8':'b', '9':'g', '@':'a', '$':'s', '!':'i', '+':'t', 'v':'u', 'x':'x', '(': 'c', '[': 'c', '{': 'c', '|': 'i', '*':'', '#':'', '%':'', '^':''};
@@ -308,7 +321,7 @@
                 if (user) {
                     const statusDiv = document.getElementById('auth-status');
                     if (statusDiv) {
-                        statusDiv.innerText = "Connected Globally";
+                        statusDiv.innerText = "Connected To Leaderboard Service";
                         statusDiv.className = "mt-4 p-2 rounded bg-slate-950/50 text-[10px] uppercase font-bold text-cyan-500/50 tracking-widest text-center leading-tight min-h-[40px] flex items-center justify-center";
                     }
                     if (!leaderboardUnsubscribe) setupLeaderboardListener();
@@ -584,7 +597,7 @@
             player.scaleX += (targetScaleX - player.scaleX) * 0.3;
             player.scaleY += (targetScaleY - player.scaleY) * 0.3;
 
-            // Update Trail logic (restored and improved)
+            // Update Trail logic
             if (diffX > 0.001 || diffY > 0.001) {
                 player.trail.unshift({x: player.visualX, y: player.visualY});
                 if (player.trail.length > 10) player.trail.pop();
@@ -731,18 +744,21 @@
 
             if (filteredScores.length === 0) {
                 const msg = activeTab === 'personal' ? "No personal runs yet..." : "No global runs yet...";
-                leaderboardList.innerHTML = `<p class="text-slate-500 italic">${msg}</p>`;
+                leaderboardList.innerHTML = `<p class="text-slate-500 italic text-center py-4">${msg}</p>`;
                 if (seeMoreBtn) seeMoreBtn.classList.add('hidden');
                 return;
             }
 
             const displayScores = filteredScores.slice(0, leaderboardDisplayLimit);
             
+            /**
+             * 🔒 Security Fix: Using escapeHTML for player names to prevent HTML Injection/XSS
+             */
             leaderboardList.innerHTML = displayScores.map((s, i) => `
                 <div class="flex justify-between items-center py-2 border-b border-slate-800 last:border-0">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <span class="${i < 3 ? 'text-cyan-400 font-black' : 'text-slate-600'}">#${i + 1}</span>
-                        <span class="text-slate-300 truncate font-bold">${s.name}</span>
+                        <span class="text-slate-300 truncate font-bold">${escapeHTML(s.name || "Anonymous")}</span>
                     </div>
                     <span class="text-cyan-500 font-bold ml-2">Lvl ${s.level}</span>
                 </div>
