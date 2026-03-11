@@ -658,7 +658,7 @@
         onAuthStateChanged(auth, u => {
             currentUser = u;
             if (u) { 
-                const as = document.getElementById('auth-status'); if (as) as.innerText = "Connected Globally"; 
+                const as = document.getElementById('auth-status'); if (as) as.innerText = "Connected To Leaderboard Services"; 
                 setupListeners(); 
                 checkDailyStatus();
                 setupWatchdog(); 
