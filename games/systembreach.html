@@ -115,10 +115,6 @@
         #identity-modal.hidden { display: none; }
         .glitch-text { text-shadow: 1px 0 #ff0000, -1px 0 #0000ff; }
         
-        #log-container {
-            scroll-behavior: smooth;
-        }
-
         .stat-box {
             background: rgba(16, 185, 129, 0.05);
             border: 1px solid rgba(16, 185, 129, 0.2);
@@ -205,7 +201,7 @@
             </div>
 
             <div class="pt-4 border-t border-emerald-900/20 text-[8px] opacity-30 text-center uppercase tracking-widest" id="node-id-display">
-                Node_ID: server-e67f7
+                Node_ID: raid-vault-e67f7 // XSS Hardened v3.6.8
             </div>
         </div>
     </div>
@@ -293,7 +289,7 @@
             <div class="text-[10px] font-black uppercase border-b border-emerald-900 pb-2 mb-3 md:mb-4 flex items-center gap-2 text-emerald-500">
                 <i data-lucide="globe" size="12"></i> Global_Activity_Feed
             </div>
-            <div id="log-container" class="flex-1 flex flex-col justify-end overflow-hidden space-y-1">
+            <div id="log-container" class="flex-1 flex flex-col justify-end overflow-hidden space-y-1 font-mono">
                 <!-- Culled data feed -->
             </div>
             <div class="mt-3 pt-2 border-t border-emerald-900/30 flex justify-between items-center text-[9px] font-bold opacity-30 shrink-0">
@@ -320,11 +316,11 @@
         };
         
         const appId = "raid-vault-e67f7"; 
-        const POINT_TICK_MS = 1 * 60 * 1000; 
-        const VAULT_COOLDOWN_MS = 5 * 60 * 1000; 
-        const STARTING_CREDITS = 20;
+        const POINT_TICK_MS = 2 * 60 * 1000; 
+        const VAULT_COOLDOWN_MS = 30 * 60 * 1000; 
+        const STARTING_CREDITS = 10;
 
-        // DOM Elements
+        // DOM Elements Reference
         const el = {
             credits: document.getElementById('ui-credits'),
             timer: document.getElementById('ui-timer'),
@@ -370,12 +366,23 @@
 
             const LEET_TRANSFORM = { '4': 'a', '@': 'a', '8': 'b', '3': 'e', '1': 'i', '!': 'i', 'l': 'i', '0': 'o', '5': 's', '$': 's', '7': 't', '+': 't', 'v': 'u', 'u': 'u', '9': 'g' };
 
+            // Secure XSS Escaping Utility
+            function escapeHTML(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
             function createActionButtons() {
                 if (!el.actions) return;
                 el.actions.innerHTML = ATTACKS.map(a => `
                     <button class="btn-action p-3 rounded flex flex-col items-center gap-1 group" id="btn-${a.id}">
                         <i data-lucide="${a.icon}" size="16"></i>
-                        <span class="text-[9px] font-black uppercase tracking-widest">${a.name}</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-emerald-500">${a.name}</span>
                         <span class="cost-label text-[8px] opacity-40 font-bold">${a.cost} CRED</span>
                     </button>
                 `).join('');
@@ -488,7 +495,7 @@
                             }">
                                 <i data-lucide="${l.cracked ? 'check' : 'lock'}" size="14"></i>
                             </div>
-                            <span class="text-[8px] font-bold mt-1">L-${i+1}</span>
+                            <span class="text-[8px] font-bold mt-1 uppercase">L-${i+1}</span>
                         </div>
                     `).join('');
                 }
@@ -509,8 +516,8 @@
                     el.winner.innerHTML = `
                         <div class="bg-emerald-500 text-black p-2 font-black uppercase text-center text-[10px] mb-2 font-bold">Latest Breach</div>
                         <div class="space-y-1 px-1">
-                            <p class="text-[11px] font-bold uppercase flex justify-between"><span class="opacity-40">Agent:</span> <span class="text-white">${h.lastWinner.name}</span></p>
-                            <p class="text-[11px] font-bold uppercase flex justify-between"><span class="opacity-40">Method:</span> <span class="text-emerald-400">${h.lastWinner.method}</span></p>
+                            <p class="text-[11px] font-bold uppercase flex justify-between"><span class="opacity-40">Agent:</span> <span class="text-white">${escapeHTML(h.lastWinner.name)}</span></p>
+                            <p class="text-[11px] font-bold uppercase flex justify-between"><span class="opacity-40">Method:</span> <span class="text-emerald-400">${escapeHTML(h.lastWinner.method)}</span></p>
                         </div>`;
                 }
                 lucide.createIcons();
@@ -546,7 +553,7 @@
                     <div class="leaderboard-item">
                         <div class="flex items-center overflow-hidden">
                             <span class="rank-badge shrink-0 ${i === 0 ? 'rank-1' : ''}">${i + 1}</span>
-                            <span class="font-bold opacity-80 truncate">${(m.displayName || 'Anon').toUpperCase()}</span>
+                            <span class="font-bold opacity-80 truncate uppercase">${escapeHTML(m.displayName || 'Anon')}</span>
                         </div>
                         <span class="text-blue-400 font-black shrink-0 ml-2">${(m.dataGB || 0).toFixed(1)}GB</span>
                     </div>`).join('');
@@ -571,7 +578,10 @@
                                 if (snap.exists()) {
                                     let data = snap.data();
                                     if (!data.displayName) { if (el.nameModal) el.nameModal.classList.remove('hidden'); }
-                                    else { if (el.nameModal) el.nameModal.classList.add('hidden'); if (el.agentId) el.agentId.innerText = `ID: ${data.displayName.toUpperCase()}`; }
+                                    else { 
+                                        if (el.nameModal) el.nameModal.classList.add('hidden'); 
+                                        if (el.agentId) el.agentId.innerText = `ID: ${escapeHTML(data.displayName).toUpperCase()}`; 
+                                    }
                                     state.profile = data; refreshUI();
                                 } else {
                                     setDoc(doc(db, 'artifacts', appId, 'users', u.uid, 'state', 'profile'), { points: STARTING_CREDITS, dataGB: 0, rewardLog: [], lastTick: Date.now(), displayName: '' });
@@ -587,7 +597,7 @@
                             });
                             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'activity'), (snap) => {
                                 const logs = snap.docs.map(doc => doc.data()).sort((a, b) => a.time - b.time);
-                                if (el.logs) el.logs.innerHTML = logs.slice(-30).map(log => `<div class="log-entry"><span class="opacity-30">[${new Date(log.time).toLocaleTimeString([], {hour12:false})}]</span> ${log.msg}</div>`).join('');
+                                if (el.logs) el.logs.innerHTML = logs.slice(-30).map(log => `<div class="log-entry"><span class="opacity-30">[${new Date(log.time).toLocaleTimeString([], {hour12:false})}]</span> ${escapeHTML(log.msg)}</div>`).join('');
                             });
                             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard'), (snap) => {
                                 renderLeaderboard(snap.docs.map(doc => doc.data()));
@@ -618,7 +628,7 @@
                     }
                     if (state.heist?.isCracked && state.heist.breachTime > 0) {
                         const diff = Math.max(0, (state.heist.breachTime + VAULT_COOLDOWN_MS) - now);
-                        if (el.resetCountdown) el.resetCountdown.innerText = `${Math.floor(diff/60000)}:${Math.floor((diff%60000)/1000).toString().padStart(2, '0')}`;
+                        if (el.resetCountdown) el.resetCountdown.innerText = `${Math.floor(diff / 60000)}:${Math.floor((diff % 60000) / 1000).toString().padStart(2, '0')}`;
                         if (diff <= 0) resetHeist(doc(db, 'artifacts', appId, 'public', 'data', 'heists', 'global'));
                     }
                     refreshUI();
