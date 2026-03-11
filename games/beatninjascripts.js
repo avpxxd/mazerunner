@@ -23,10 +23,11 @@
         const autoSliceSwitch = document.getElementById('autoSliceSwitch');
         
         const musicPlaylist = [
-            "https://www.bensound.com/bensound-music/bensound-onrepeat.mp3",
-            "https://www.bensound.com/bensound-music/bensound-bymyside.mp3",
-            "https://www.bensound.com/bensound-music/bensound-dreams.mp3",
-            "https://www.bensound.com/bensound-music/bensound-allthat.mp3"
+            "https://games.damvan.ca/fun/Demo_1.mp3",
+            "https://games.damvan.ca/fun/Demo_2.mp3",
+            "https://games.damvan.ca/fun/Demo_3.mp3",
+            "https://games.damvan.ca/fun/Demo_4.mp3",
+            "https://games.damvan.ca/fun/Demo_5.mp3"
         ];
 
         let score = 0, highScore = localStorage.getItem('sliceFusionHighScore') || 0;
