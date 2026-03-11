@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Breach | Terminal v3.6.6</title>
+    <title>System Breach | Terminal v3.6.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -21,7 +21,7 @@
             font-family: 'JetBrains Mono', monospace;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
         }
@@ -98,9 +98,12 @@
             border-left: 2px solid rgba(16, 185, 129, 0.2);
             padding-left: 8px;
             margin-bottom: 4px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             animation: slideIn 0.2s ease-out;
             flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 
@@ -119,50 +122,57 @@
         .stat-box {
             background: rgba(16, 185, 129, 0.05);
             border: 1px solid rgba(16, 185, 129, 0.2);
-            padding: 6px 12px;
+            padding: 4px 8px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            height: 52px;
+            height: 48px;
         }
         .stat-label {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             opacity: 0.4;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.05em;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .stat-value {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: 900;
             text-align: right;
             line-height: 1;
             font-variant-numeric: tabular-nums;
         }
 
+        @media (min-width: 1024px) {
+            .stat-box { padding: 6px 12px; height: 52px; }
+            .stat-label { font-size: 9px; margin-bottom: 4px; }
+            .stat-value { font-size: 20px; }
+        }
+
         .leaderboard-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 8px;
+            padding: 4px 8px;
             border-bottom: 1px solid rgba(16, 185, 129, 0.1);
-            font-size: 11px;
+            font-size: 10px;
         }
-        .leaderboard-item:last-child { border: 0; }
         .rank-badge {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: rgba(16, 185, 129, 0.2);
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 900;
-            margin-right: 8px;
+            margin-right: 6px;
         }
         .rank-1 { color: #fbbf24; background: rgba(251, 191, 36, 0.2); }
+        .custom-scroll::-webkit-scrollbar { width: 2px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.3); }
     </style>
 </head>
 <body class="">
@@ -172,64 +182,65 @@
 
     <!-- Identity Modal -->
     <div id="identity-modal" class="fixed inset-0 bg-black z-[3500] flex items-center justify-center p-6">
-        <div class="max-w-md w-full terminal-border bg-zinc-950 p-8 space-y-8 relative overflow-hidden text-center md:text-left">
+        <div class="max-w-md w-full terminal-border bg-zinc-950 p-6 md:p-8 space-y-6 md:space-y-8 relative overflow-hidden text-center md:text-left">
             <div class="absolute top-0 left-0 w-full h-1 bg-emerald-500/20"></div>
             <div class="space-y-2">
-                <h2 class="text-2xl font-black italic uppercase text-emerald-500 glitch-text flex items-center justify-center md:justify-start gap-3">
+                <h2 class="text-xl md:text-2xl font-black italic uppercase text-emerald-500 glitch-text flex items-center justify-center md:justify-start gap-3">
                     <i data-lucide="shield-check"></i> Identity Verification
                 </h2>
-                <p class="text-[10px] opacity-60 font-bold uppercase tracking-widest">Establish Neural Agent Link...</p>
+                <p class="text-[9px] md:text-[10px] opacity-60 font-bold uppercase tracking-widest">Establish Neural Agent Link...</p>
             </div>
 
             <div class="space-y-4">
                 <div class="space-y-1 text-left">
                     <label class="text-[9px] uppercase font-bold opacity-40 ml-1">Agent Handle</label>
                     <input type="text" id="name-input" maxlength="15" 
-                        class="w-full bg-black border border-emerald-900/50 p-4 text-emerald-500 font-bold outline-none focus:border-emerald-500 uppercase tracking-widest transition-all"
+                        class="w-full bg-black border border-emerald-900/50 p-3 md:p-4 text-emerald-500 font-bold outline-none focus:border-emerald-500 uppercase tracking-widest transition-all"
                         placeholder="ENTER_NAME...">
                 </div>
-                <button id="name-submit" class="w-full bg-emerald-500 text-black font-black p-4 uppercase hover:bg-white active:scale-95 transition-all text-sm tracking-widest">
+                <button id="name-submit" class="w-full bg-emerald-500 text-black font-black p-3 md:p-4 uppercase hover:bg-white active:scale-95 transition-all text-xs md:text-sm tracking-widest">
                     Establish Connection
                 </button>
                 <p id="name-error" class="text-[9px] text-red-500 uppercase font-black text-center hidden">Access Denied: Invalid Handle</p>
             </div>
 
             <div class="pt-4 border-t border-emerald-900/20 text-[8px] opacity-30 text-center uppercase tracking-widest" id="node-id-display">
-                Node_ID: raid-vault-e67f7 // Zero-Trust v3.6.6
+                Node_ID: server-e67f7
             </div>
         </div>
     </div>
 
     <!-- UI Header -->
-    <header class="p-4 border-b terminal-border flex flex-col md:flex-row justify-between items-center gap-4 bg-zinc-950">
-        <div class="flex items-center gap-3">
-            <i data-lucide="shield-alert" class="text-emerald-500"></i>
+    <header class="p-3 md:p-4 border-b terminal-border flex flex-col md:flex-row justify-between items-center gap-3 bg-zinc-950">
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <i data-lucide="shield-alert" class="text-emerald-500 w-5 h-5 md:w-6 md:h-6"></i>
             <div>
-                <h1 class="text-xl font-black italic tracking-tighter uppercase leading-none">Global Heist Protocol</h1>
-                <div class="text-[10px] opacity-40 font-bold mt-1 uppercase" id="ui-date">AUTH_INIT...</div>
+                <h1 class="text-lg md:text-xl font-black italic tracking-tighter uppercase leading-none">Global Heist Protocol</h1>
+                <div class="text-[9px] opacity-40 font-bold mt-1 uppercase" id="ui-date">AUTH_INIT...</div>
             </div>
         </div>
 
-        <div class="flex gap-2 items-stretch h-[52px]">
-            <div class="stat-box min-w-[100px]">
+        <div class="flex gap-2 items-stretch h-[48px] md:h-[52px] w-full md:w-auto overflow-hidden">
+            <div class="stat-box flex-1 md:min-w-[100px]">
                 <div class="stat-label">Credits</div>
                 <div class="stat-value text-emerald-500" id="ui-credits">--</div>
             </div>
-            <div class="stat-box min-w-[110px]">
+            <div class="stat-box flex-1 md:min-w-[110px]">
                 <div class="stat-label">Extracted</div>
-                <div class="stat-value text-blue-400"><span id="ui-data-gb">--</span><span class="text-[10px] ml-1 uppercase">GB</span></div>
+                <div class="stat-value text-blue-400"><span id="ui-data-gb">--</span><span class="text-[9px] ml-1 uppercase">GB</span></div>
             </div>
-            <div class="stat-box min-w-[90px]">
+            <div class="stat-box flex-1 md:min-w-[90px]">
                 <div class="stat-label">Refill</div>
                 <div class="stat-value text-zinc-500" id="ui-timer">--:--</div>
             </div>
         </div>
     </header>
 
-    <main class="flex-1 overflow-hidden p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <main class="flex-1 overflow-y-auto lg:overflow-hidden p-3 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
         <!-- Sidebar: Rankings & Intel -->
-        <div class="flex flex-col gap-6 overflow-hidden">
-            <div class="terminal-border p-4 rounded-lg bg-emerald-950/5">
+        <div class="flex flex-col gap-4 md:gap-6">
+            <!-- Intel Summary: Hidden on Mobile -->
+            <div class="terminal-border p-4 rounded-lg bg-emerald-950/5 hidden lg:block">
                 <h3 class="text-xs font-black uppercase mb-4 flex items-center gap-2 text-emerald-500">
                     <i data-lucide="trophy" size="14"></i> Intel Summary
                 </h3>
@@ -238,50 +249,56 @@
                 </div>
             </div>
 
-            <div class="terminal-border p-4 rounded-lg bg-emerald-950/5 flex flex-col flex-1 overflow-hidden">
-                <h3 class="text-xs font-black uppercase mb-4 flex items-center gap-2 text-blue-400">
+            <!-- Global Rankings: Condensed on Mobile -->
+            <div class="terminal-border p-3 md:p-4 rounded-lg bg-emerald-950/5 flex flex-col h-[200px] lg:h-full lg:flex-1 overflow-hidden">
+                <h3 class="text-xs font-black uppercase mb-3 flex items-center gap-2 text-blue-400">
                     <i data-lucide="bar-chart-3" size="14"></i> Global Rankings
                 </h3>
                 <div id="leaderboard-container" class="flex-1 overflow-y-auto space-y-1 pr-1 custom-scroll">
-                    <p class="text-[10px] opacity-30 italic text-center py-10">Updating rankings...</p>
+                    <p class="text-[10px] opacity-30 italic text-center py-6">Updating rankings...</p>
                 </div>
-                <div class="mt-4 pt-2 border-t border-emerald-900/30 text-[8px] opacity-30 text-center uppercase">
-                    Sort: Extracted Data (GB)
+                <div class="mt-3 pt-2 border-t border-emerald-900/30 text-[8px] opacity-30 text-center uppercase shrink-0">
+                    Sort: Data (GB)
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-2 flex flex-col gap-6">
-            <div id="vault-container" class="terminal-border rounded-xl p-8 bg-black/40 relative">
-                <div id="lock-indicators" class="flex justify-between mb-12"></div>
+        <!-- Center: The Vault -->
+        <div class="lg:col-span-2 flex flex-col gap-4 md:gap-6">
+            <div id="vault-container" class="terminal-border rounded-xl p-4 md:p-8 bg-black/40 relative">
+                <div id="lock-indicators" class="flex justify-between mb-8 md:mb-12"></div>
                 <div id="hp-section" class="space-y-4">
                     <div class="flex justify-between items-end px-1">
-                        <span id="lock-label" class="text-lg font-black italic uppercase text-white">Target: Lock_1</span>
-                        <span id="hp-label" class="text-xs font-bold opacity-60">-- / -- HP</span>
+                        <span id="lock-label" class="text-sm md:text-lg font-black italic uppercase text-white">Target: Lock_1</span>
+                        <span id="hp-label" class="text-[10px] md:text-xs font-bold opacity-60">-- / -- HP</span>
                     </div>
                     <progress id="hp-bar" value="0" max="100"></progress>
-                    <p id="system-status" class="text-[10px] text-center opacity-40 uppercase tracking-widest">Scanning Vulnerabilities...</p>
+                    <p id="system-status" class="text-[9px] md:text-[10px] text-center opacity-40 uppercase tracking-widest">Scanning Vulnerabilities...</p>
                 </div>
-                <div id="cracked-message" class="hidden text-center py-12 space-y-4">
-                    <h2 class="text-5xl font-black italic uppercase text-white glitch-text">System Breached</h2>
+                <div id="cracked-message" class="hidden text-center py-8 md:py-12 space-y-4">
+                    <h2 class="text-3xl md:text-5xl font-black italic uppercase text-white glitch-text">System Breached</h2>
                     <div class="space-y-1">
-                        <p class="text-[10px] opacity-60 uppercase font-bold">New Security Protocols Incoming In:</p>
-                        <p id="reset-countdown" class="text-2xl font-black text-emerald-500 tracking-[0.2em]">--:--</p>
+                        <p class="text-[9px] md:text-[10px] opacity-60 uppercase font-bold">New Security Protocols Incoming In:</p>
+                        <p id="reset-countdown" class="text-xl md:text-2xl font-black text-emerald-500 tracking-[0.2em]">--:--</p>
                     </div>
-                    <p class="text-[10px] opacity-80 uppercase italic font-bold animate-pulse tracking-[0.15em]">Searching For Vulnerable Devices</p>
+                    <p class="text-[9px] md:text-[10px] opacity-80 uppercase italic font-bold animate-pulse tracking-[0.1em] md:tracking-[0.15em]">Searching For Vulnerable Devices</p>
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="action-grid"></div>
+            <!-- Action Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3" id="action-grid"></div>
         </div>
 
-        <div class="terminal-border rounded-lg bg-black/60 p-4 flex flex-col overflow-hidden">
-            <div class="text-[10px] font-black uppercase border-b border-emerald-900 pb-2 mb-4 flex items-center gap-2 text-emerald-500">
+        <!-- Activity Feed: Squeezed for Mobile -->
+        <div class="terminal-border rounded-lg bg-black/60 p-3 md:p-4 flex flex-col h-[160px] lg:h-full overflow-hidden">
+            <div class="text-[10px] font-black uppercase border-b border-emerald-900 pb-2 mb-3 md:mb-4 flex items-center gap-2 text-emerald-500">
                 <i data-lucide="globe" size="12"></i> Global_Activity_Feed
             </div>
-            <div id="log-container" class="flex-1 flex flex-col justify-end overflow-hidden space-y-1"></div>
-            <div class="mt-4 pt-2 border-t border-emerald-900/30 flex justify-between items-center text-[9px] font-bold opacity-30">
-                <span id="agent-id">ID: AUTH_PENDING</span>
-                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> LIVE_FEED</span>
+            <div id="log-container" class="flex-1 flex flex-col justify-end overflow-hidden space-y-1">
+                <!-- Culled data feed -->
+            </div>
+            <div class="mt-3 pt-2 border-t border-emerald-900/30 flex justify-between items-center text-[9px] font-bold opacity-30 shrink-0">
+                <span id="agent-id">ID: AUTH...</span>
+                <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> LIVE</span>
             </div>
         </div>
     </main>
@@ -291,6 +308,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, increment, runTransaction, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCizYJ7xFmY5Neu6gD9JAkVf1LT5_Zskk8",
             authDomain: "raid-vault-e67f7.firebaseapp.com",
@@ -303,9 +321,10 @@
         
         const appId = "raid-vault-e67f7"; 
         const POINT_TICK_MS = 1 * 60 * 1000; 
-        const VAULT_COOLDOWN_MS = 10 * 60 * 1000; 
+        const VAULT_COOLDOWN_MS = 5 * 60 * 1000; 
         const STARTING_CREDITS = 20;
 
+        // DOM Elements
         const el = {
             credits: document.getElementById('ui-credits'),
             timer: document.getElementById('ui-timer'),
@@ -387,7 +406,6 @@
 
             async function executeAttack(atk) {
                 if (!state.user || !state.heist || state.heist.isCracked || !state.profile || state.profile.points < atk.cost) return;
-
                 const now = Date.now();
                 if (now - (cooldowns[atk.id] || 0) < (atk.cooldown * 1000)) return;
 
@@ -401,10 +419,8 @@
                         const hSnap = await tx.get(heistRef);
                         const pSnap = await tx.get(profRef);
                         if (!hSnap.exists() || !pSnap.exists()) return;
-
                         const hData = hSnap.data();
                         const pData = pSnap.data();
-                        
                         if (pData.points < atk.cost) throw "DENIED";
                         if (hData.isCracked) return;
 
@@ -425,7 +441,6 @@
                                 hData.lastWinner = { name: pData.displayName, method: atk.name };
                             }
                         }
-
                         tx.update(heistRef, hData);
                         tx.update(profRef, { points: increment(-atk.cost), dataGB: increment(atk.data) });
                         tx.update(pubRankRef, { dataGB: increment(atk.data), displayName: pData.displayName });
@@ -437,7 +452,7 @@
 
                     if (atk.id === 'nuke') { el.flash.style.opacity = '1'; setTimeout(() => el.flash.style.opacity = '0', 300); }
                     if (atk.id === 'bomb' || atk.id === 'nuke') { el.body.classList.add('shake-screen'); setTimeout(() => el.body.classList.remove('shake-screen'), 500); }
-                } catch (e) { console.error("Neural interdiction active"); }
+                } catch (e) { console.error("Action Interdicted"); }
             }
 
             function refreshUI() {
@@ -506,19 +521,16 @@
                 if (!state.user || !state.profile) return;
                 let rewardGB = 0;
                 let log = [...(state.profile.rewardLog || [])];
-
                 h.locks.forEach((lock, idx) => {
                     const key = `lock_v4_${h.breachTime || 0}_${idx}`;
                     if (lock.cracked && h.participants?.[idx]?.includes(state.user.uid) && !log.includes(key)) {
                         rewardGB += 30; log.push(key);
                     }
                 });
-
                 const breachKey = `breach_v4_${h.breachTime}`;
                 if (h.isCracked && h.breachTime > 0 && !log.includes(breachKey)) {
                     rewardGB += 50; log.push(breachKey);
                 }
-
                 if (rewardGB > 0) {
                     const profRef = doc(db, 'artifacts', appId, 'users', state.user.uid, 'state', 'profile');
                     const pubRankRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', state.user.uid);
