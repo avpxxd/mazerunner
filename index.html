@@ -90,7 +90,7 @@
         /* Tab Styles */
         .tab-btn {
             padding: 6px 4px;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -101,6 +101,43 @@
         .tab-btn.active {
             color: #22d3ee;
             border-bottom-color: #22d3ee;
+        }
+
+        /* Mode Selection Styles */
+        .mode-btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s;
+            border: 1px solid #1e293b;
+        }
+        .mode-btn.active {
+            background: #22d3ee;
+            color: #0f172a;
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+        }
+        
+        .mode-btn.active #daily-countdown {
+            color: #0f172a;
+            opacity: 0.7;
+        }
+
+        .mode-btn:not(.active) {
+            background: #0f172a;
+            color: #64748b;
+        }
+
+        /* Disabled state */
+        .mode-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #1e293b !important;
+            color: #475569 !important;
+            box-shadow: none !important;
+            filter: grayscale(1);
         }
     </style>
 </head>
@@ -124,13 +161,13 @@
 
                 <!-- Tabs -->
                 <div class="flex justify-between border-b border-slate-800 mb-4 px-1">
-                    <button onclick="setTab('all')" id="tab-all" class="tab-btn active">All Time</button>
-                    <button onclick="setTab('today')" id="tab-today" class="tab-btn">Today</button>
+                    <button onclick="setTab('all')" id="tab-all" class="tab-btn active">Global</button>
+                    <button onclick="setTab('daily_race')" id="tab-daily_race" class="tab-btn">Daily Race</button>
                     <button onclick="setTab('personal')" id="tab-personal" class="tab-btn">Your Top</button>
                 </div>
 
                 <div id="leaderboard-list" class="space-y-2 font-mono text-sm max-h-[300px] md:max-h-[500px] overflow-y-auto pr-2">
-                    <p class="text-slate-500 italic">Connecting to servers...</p>
+                    <p class="text-slate-500 italic">Connecting...</p>
                 </div>
                 
                 <button id="see-more-btn" onclick="expandLeaderboard()" class="hidden w-full mt-4 py-2 text-[10px] uppercase font-bold text-cyan-500/50 hover:text-cyan-400 border border-cyan-500/20 hover:border-cyan-500/50 rounded transition-all tracking-widest">
@@ -144,7 +181,6 @@
         <!-- Game Section -->
         <main id="game-section" class="order-1 md:order-2 flex flex-col items-center w-full max-w-xl">
             <div id="game-ui" class="w-full mb-6 flex flex-row justify-between items-end gap-2 px-1">
-                <!-- Level Indicator -->
                 <div class="flex flex-col items-start gap-1">
                     <span class="text-slate-500 text-[10px] uppercase font-bold tracking-[0.2em] ml-1">Level</span>
                     <div class="boxed-display">
@@ -160,7 +196,6 @@
                     </div>
                 </div>
 
-                <!-- Timer Indicator -->
                 <div class="flex flex-col items-end gap-1">
                     <span class="text-slate-500 text-[10px] uppercase font-bold tracking-[0.2em] mr-1">Time (<span id="limit-display">10.0</span>s)</span>
                     <div class="boxed-display">
@@ -175,10 +210,22 @@
                 <canvas id="mazeCanvas"></canvas>
                 
                 <div id="overlay" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center rounded-lg z-10 p-6">
-                    <div id="start-screen" class="text-center">
-                        <h2 class="text-4xl font-black mb-4 text-cyan-400 italic">GO FAST</h2>
-                        <p class="text-slate-300 mb-6 max-w-xs mx-auto text-sm leading-relaxed">Clear the 6x6 maze before time runs out.<br>The timer shrinks every level!</p>
-                        <button onclick="startGame()" class="px-10 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-full transition-all transform hover:scale-105 active:scale-95 uppercase shadow-lg shadow-cyan-500/20">Start Run</button>
+                    <div id="start-screen" class="text-center w-full">
+                        <h2 class="text-4xl font-black mb-6 text-cyan-400 italic uppercase">Select Mode</h2>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 w-full max-w-sm mx-auto">
+                            <button onclick="selectMode('classic')" id="mode-classic" class="mode-btn active p-6 flex flex-col items-center gap-2">
+                                <span class="text-lg">Classic</span>
+                                <span class="text-[9px] opacity-60 font-normal">Infinite Random Mazes</span>
+                            </button>
+                            <button onclick="selectMode('daily')" id="mode-daily" class="mode-btn p-6 flex flex-col items-center gap-2 relative">
+                                <span class="text-lg">Daily Race</span>
+                                <span id="daily-subtext" class="text-[9px] opacity-60 font-normal">Same for Everyone</span>
+                                <div id="daily-countdown" class="text-[8px] mt-1 text-cyan-400 font-mono hidden">--:--:--</div>
+                            </button>
+                        </div>
+
+                        <button onclick="startGame()" class="px-12 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-full transition-all transform hover:scale-105 active:scale-95 uppercase shadow-lg shadow-cyan-500/20">Enter Maze</button>
                     </div>
 
                     <div id="gameover-screen" class="hidden text-center w-full max-w-xs">
@@ -201,28 +248,10 @@
                 </div>
             </div>
 
-            <!-- Mobile Controls -->
-            <div id="mobile-controls" class="grid grid-cols-3 gap-3 mt-8 md:hidden">
-                <div></div>
-                <button onmousedown="handleMobileMove(0, -1)" ontouchstart="handleMobileMove(0, -1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
-                    <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path></svg>
-                </button>
-                <div></div>
-                <button onmousedown="handleMobileMove(-1, 0)" ontouchstart="handleMobileMove(-1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
-                    <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                </button>
-                <button onmousedown="handleMobileMove(0, 1)" ontouchstart="handleMobileMove(0, 1)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
-                    <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
-                <button onmousedown="handleMobileMove(1, 0)" ontouchstart="handleMobileMove(1, 0)" class="control-btn w-16 h-16 bg-slate-800 rounded-xl flex items-center justify-center border-b-4 border-slate-950 active:translate-y-1 active:border-b-0">
-                    <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                </button>
-            </div>
-
             <footer class="mt-8 text-slate-500 text-[10px] text-center uppercase tracking-[0.2em] font-bold">
                 Made By AVPxxd
             </footer>
-            <footer class="mt-8 text-slate-500 text-[10px] text-center uppercase tracking-[0.2em] font-bold">
+            <footer class="mt-2 text-slate-600 text-[9px] text-center uppercase tracking-[0.1em] font-bold">
                 Special Thanks To Mater, Branchy, & TheLocalAdmin For Bugfixing!
             </footer>
         </main>
@@ -231,10 +260,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-        /** * 🔥 Firebase Configuration
-         */
         const githubConfig = {
             apiKey: "AIzaSyC8DJWDZ6gBArzoGpbQVVyTLSHiVM0KXTM",
             authDomain: "maze-speedrun-leaderboar-5c103.firebaseapp.com",
@@ -247,13 +274,10 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'maze-speedrun-global';
         let firebaseConfig = null;
-        
         try {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
-            } else {
-                firebaseConfig = githubConfig;
-            }
+            } else { firebaseConfig = githubConfig; }
         } catch (e) { console.error("Config error", e); }
         
         let app, auth, db;
@@ -264,124 +288,127 @@
         }
         
         let currentUser = null;
-        let globalScores = [];
+        let classicScores = [];
+        let dailyScores = [];
         let leaderboardUnsubscribe = null;
+        let dailyUnsubscribe = null;
         let leaderboardDisplayLimit = 10;
         let activeTab = 'all';
+        let gameMode = 'classic'; 
+        let hasPlayedDailyToday = false;
 
-        // Audio Objects
         const goalAudio = new Audio('goal.mp3');
         const warningAudio = new Audio('1sec.mp3');
         let playedWarningSound = false;
 
-        const RESTRICTED_TERMS = ['fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore', 'retard', 'fag', 'nigga', 'bastard', 'cock', 'jerk', 'porn', 'sex', 'tit', 'boob', 'vagina', 'penis', 'cum', 'dumbass', 'jackass', 'motherfucker', 'twat', 'wanker', 'prick', 'bollocks', 'arse', 'chink', 'kike', 'spic', 'wetback', 'nazi', 'hitler', 'rape', 'pedo', 'homo', 'dyke', 'coon', 'jap', 'gook', 'negro', 'clit', 'labia', 'scrotum', 'twat', 'piss', 'shat', 'fart', 'boner'];
-        
-        /**
-         * 🛡️ Helper to escape HTML characters to prevent XSS/Injection
-         */
         function escapeHTML(str) {
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
 
+        function getDailyCollectionTag() {
+            return new Date().toISOString().split('T')[0].replace(/-/g, '_');
+        }
+
+        function seededRandom(seed) {
+            let state = seed;
+            return function() {
+                state = (state * 1103515245 + 12345) % 2147483648;
+                return state / 2147483648;
+            };
+        }
+
+        let currentPrng = Math.random;
+
         function isNameClean(name) {
             if (!name || name.trim().length === 0) return false;
             const leetMap = {'0':'o', '1':'i', '2':'z', '3':'e', '4':'a', '5':'s', '6':'g', '7':'t', '8':'b', '9':'g', '@':'a', '$':'s', '!':'i', '+':'t', 'v':'u', 'x':'x', '(': 'c', '[': 'c', '{': 'c', '|': 'i', '*':'', '#':'', '%':'', '^':''};
-            const rawLower = name.toLowerCase();
-            let translated = "";
-            for (let char of rawLower) { translated += leetMap[char] || char; }
-            const normalized = translated.replace(/[^a-z0-9]/g, '');
-            const deduped = normalized.replace(/(.)\1+/g, '$1');
-            const checkStrings = [normalized, deduped, rawLower.replace(/[^a-z0-9]/g, '')];
-            for (const str of checkStrings) {
-                if (str.length === 0) continue;
-                for (const term of RESTRICTED_TERMS) { if (str.includes(term)) return false; }
-            }
+            const normalized = name.toLowerCase().split('').map(c => leetMap[c] || c).join('').replace(/[^a-z0-9]/g, '');
+            const badWords = ['fuck', 'shit', 'asshole', 'bitch', 'nigger', 'faggot', 'cunt', 'dick', 'pussy', 'slut', 'whore', 'retard', 'fag', 'nigga', 'bastard', 'cock', 'jerk', 'porn', 'sex', 'tit', 'boob', 'vagina', 'penis', 'cum', 'dumbass', 'jackass', 'motherfucker', 'twat', 'wanker', 'prick', 'bollocks', 'arse', 'chink', 'kike', 'spic', 'wetback', 'nazi', 'hitler', 'rape', 'pedo', 'homo', 'dyke', 'coon', 'jap', 'gook', 'negro', 'clit', 'labia', 'scrotum', 'twat', 'piss', 'shat', 'fart', 'boner'];
+            for (const word of badWords) { if (normalized.includes(word)) return false; }
             return true;
         }
 
         const initAuth = async () => {
             if (!auth) return;
-            const statusDiv = document.getElementById('auth-status');
-            if (statusDiv) statusDiv.innerText = "Connecting Auth...";
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth failed:", err);
-                const code = err.code || "unknown";
-                if (statusDiv) statusDiv.innerText = "Auth Error: " + code;
-            }
+                } else { await signInAnonymously(auth); }
+            } catch (err) { console.error("Auth failed:", err); }
         };
 
         if (auth) {
-            onAuthStateChanged(auth, (user) => {
+            onAuthStateChanged(auth, async (user) => {
                 currentUser = user;
                 if (user) {
                     const statusDiv = document.getElementById('auth-status');
-                    if (statusDiv) {
-                        statusDiv.innerText = "Connected To Leaderboard Service";
-                        statusDiv.className = "mt-4 p-2 rounded bg-slate-950/50 text-[10px] uppercase font-bold text-cyan-500/50 tracking-widest text-center leading-tight min-h-[40px] flex items-center justify-center";
-                    }
-                    if (!leaderboardUnsubscribe) setupLeaderboardListener();
+                    if (statusDiv) { statusDiv.innerText = "Connected Globally"; }
+                    setupListeners();
+                    checkDailyStatus();
                 }
             });
             initAuth();
         }
+
+        async function checkDailyStatus() {
+            if (!db || !currentUser) return;
+            const dailyDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'daily');
+            const snap = await getDoc(dailyDocRef);
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (snap.exists() && snap.data().lastDailyPlayed === todayStr) {
+                hasPlayedDailyToday = true;
+                const modeDailyBtn = document.getElementById('mode-daily');
+                const dailyCountdown = document.getElementById('daily-countdown');
+                const dailySubtext = document.getElementById('daily-subtext');
+                if (modeDailyBtn) { modeDailyBtn.disabled = true; modeDailyBtn.classList.remove('active'); }
+                if (dailyCountdown) dailyCountdown.classList.remove('hidden');
+                if (dailySubtext) dailySubtext.innerText = "Completed For Today";
+                selectMode('classic');
+            }
+        }
+
+        setInterval(() => {
+            const now = new Date(), tomorrow = new Date();
+            tomorrow.setUTCHours(24, 0, 0, 0);
+            const diff = tomorrow - now;
+            const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+            const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+            const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+            const countdownEl = document.getElementById('daily-countdown');
+            if (countdownEl) countdownEl.innerText = `NEXT RACE: ${h}:${m}:${s}`;
+        }, 1000);
+
+        window.selectMode = (mode) => {
+            if (mode === 'daily' && hasPlayedDailyToday) return;
+            gameMode = mode;
+            document.getElementById('mode-classic').classList.toggle('active', mode === 'classic');
+            document.getElementById('mode-daily').classList.toggle('active', mode === 'daily');
+            if (mode === 'daily') { document.getElementById('daily-countdown').classList.add('hidden'); } 
+            else if (hasPlayedDailyToday) { document.getElementById('daily-countdown').classList.remove('hidden'); }
+        };
 
         const canvas = document.getElementById('mazeCanvas');
         const ctx = canvas.getContext('2d');
         const canvasContainer = document.getElementById('canvas-container');
         const timerDisplay = document.getElementById('timer-container');
         const limitDisplay = document.getElementById('limit-display');
-        const overlay = document.getElementById('overlay');
-        const startScreen = document.getElementById('start-screen');
-        const gameoverScreen = document.getElementById('gameover-screen');
-        const finalLevelSpan = document.getElementById('final-level');
-        const leaderboardList = document.getElementById('leaderboard-list');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const seeMoreBtn = document.getElementById('see-more-btn');
+        const overlay = document.getElementById('overlay'), startScreen = document.getElementById('start-screen'), gameoverScreen = document.getElementById('gameover-screen');
+        const finalLevelSpan = document.getElementById('final-level'), leaderboardList = document.getElementById('leaderboard-list'), loadingSpinner = document.getElementById('loading-spinner'), seeMoreBtn = document.getElementById('see-more-btn');
 
         const FIXED_MAZE_SIZE = 6;
         const INITIAL_TIME_LIMIT = 10;
-        let level = 1;
-        let timeRemaining = 10;
-        let timeLimit = 10;
-        let mazeSize = FIXED_MAZE_SIZE;
-        let cellSize = 0;
-        let maze = [];
-        let player = { 
-            x: 0, 
-            y: 0, 
-            visualX: 0, 
-            visualY: 0,
-            trail: [],
-            scaleX: 1,
-            scaleY: 1
-        };
-        let gameActive = false;
-        let lastTimestamp = 0;
+        let level = 1, timeRemaining = 10, timeLimit = 10, mazeSize = FIXED_MAZE_SIZE, cellSize = 0, maze = [];
+        let player = { x: 0, y: 0, visualX: 0, visualY: 0, trail: [], scaleX: 1, scaleY: 1 };
+        let gameActive = false, lastTimestamp = 0;
 
-        class Cell {
-            constructor(r, c) {
-                this.r = r; this.c = c;
-                this.walls = [true, true, true, true];
-                this.visited = false;
-            }
-        }
+        class Cell { constructor(r, c) { this.r = r; this.c = c; this.walls = [true, true, true, true]; this.visited = false; } }
 
         function updateCounterUI(val) {
             const levelStr = val.toString().padStart(3, '0');
-            const huns = levelStr[0];
-            const tens = levelStr[1];
-            const ones = levelStr[2];
-            const d100 = document.getElementById('digit-100');
-            const d10 = document.getElementById('digit-10');
-            const d1 = document.getElementById('digit-1');
+            const huns = levelStr[0], tens = levelStr[1], ones = levelStr[2];
+            const d100 = document.getElementById('digit-100'), d10 = document.getElementById('digit-10'), d1 = document.getElementById('digit-1');
             if (val >= 100 && d100) d100.style.display = 'block';
             if (d100) d100.style.transform = `translateY(-${huns * 4.5}rem)`;
             if (d10) d10.style.transform = `translateY(-${tens * 4.5}rem)`;
@@ -390,9 +417,7 @@
 
         function initCanvas() {
             if (!canvasContainer) return;
-            let containerWidth = canvasContainer.clientWidth;
-            if (containerWidth <= 0) { containerWidth = Math.min(window.innerWidth - 64, 500); }
-            const size = Math.max(200, Math.min(containerWidth - 16, 500));
+            const size = Math.max(200, Math.min(canvasContainer.clientWidth - 16, 500));
             canvas.width = size; canvas.height = size;
             cellSize = canvas.width / mazeSize;
         }
@@ -400,33 +425,27 @@
         function generateMaze(size) {
             mazeSize = size;
             cellSize = canvas.width / mazeSize;
+            if (gameMode === 'daily') {
+                const dateSeed = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const seedVal = parseInt(dateSeed) + level;
+                currentPrng = seededRandom(seedVal);
+            } else { currentPrng = Math.random; }
             maze = Array.from({ length: size }, (_, r) => Array.from({ length: size }, (_, c) => new Cell(r, c)));
-            let stack = [];
-            let current = maze[0][0];
-            current.visited = true;
+            let stack = []; let current = maze[0][0]; current.visited = true;
             while (true) {
                 let neighbors = getUnvisitedNeighbors(current);
                 if (neighbors.length > 0) {
-                    let next = neighbors[Math.floor(Math.random() * neighbors.length)];
-                    removeWalls(current, next);
-                    stack.push(current);
-                    next.visited = true;
-                    current = next;
+                    let next = neighbors[Math.floor(currentPrng() * neighbors.length)];
+                    removeWalls(current, next); stack.push(current);
+                    next.visited = true; current = next;
                 } else if (stack.length > 0) current = stack.pop();
                 else break;
             }
-            player.x = 0;
-            player.y = 0;
-            player.visualX = 0;
-            player.visualY = 0;
-            player.scaleX = 1;
-            player.scaleY = 1;
-            player.trail = [];
+            player.x = 0; player.y = 0; player.visualX = 0; player.visualY = 0; player.trail = [];
         }
 
         function getUnvisitedNeighbors(cell) {
-            let neighbors = [];
-            let { r, c } = cell;
+            let neighbors = [], { r, c } = cell;
             if (r > 0 && !maze[r - 1][c].visited) neighbors.push(maze[r - 1][c]);
             if (r < mazeSize - 1 && !maze[r + 1][c].visited) neighbors.push(maze[r + 1][c]);
             if (c > 0 && !maze[r][c - 1].visited) neighbors.push(maze[r][c - 1]);
@@ -435,26 +454,18 @@
         }
 
         function removeWalls(a, b) {
-            let dr = a.r - b.r; let dc = a.c - b.c;
-            if (dr === 1) { a.walls[0] = false; b.walls[2] = false; }
-            else if (dr === -1) { a.walls[2] = false; b.walls[0] = false; }
-            if (dc === 1) { a.walls[3] = false; b.walls[1] = false; }
-            else if (dc === -1) { a.walls[1] = false; b.walls[3] = false; }
+            let dr = a.r - b.r, dc = a.c - b.c;
+            if (dr === 1) { a.walls[0] = false; b.walls[2] = false; } else if (dr === -1) { a.walls[2] = false; b.walls[0] = false; }
+            if (dc === 1) { a.walls[3] = false; b.walls[1] = false; } else if (dc === -1) { a.walls[1] = false; b.walls[3] = false; }
         }
 
         function draw() {
             if (!maze || maze.length === 0 || !maze[0] || cellSize <= 0) return;
-            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw Maze Walls
-            ctx.strokeStyle = "#334155";
-            ctx.lineCap = "round";
-            ctx.lineWidth = Math.max(2, Math.floor(canvas.width / 80));
+            ctx.strokeStyle = "#334155"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, Math.floor(canvas.width / 80));
             for (let r = 0; r < mazeSize; r++) {
                 for (let c = 0; c < mazeSize; c++) {
-                    let x = c * cellSize; let y = r * cellSize;
-                    let cell = maze[r][c];
+                    let x = c * cellSize, y = r * cellSize, cell = maze[r][c];
                     ctx.beginPath();
                     if (cell.walls[0]) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
                     if (cell.walls[1]) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
@@ -463,333 +474,176 @@
                     ctx.stroke();
                 }
             }
-
-            // Draw Goal (Yellow Floating Trophy)
-            const goalX = (mazeSize - 1) * cellSize + cellSize / 2;
-            const goalY = (mazeSize - 1) * cellSize + cellSize / 2;
-            const timeNow = performance.now() / 1000;
-            const bobOffset = Math.sin(timeNow * 5) * (cellSize * 0.1); 
-            
-            ctx.save();
-            ctx.translate(goalX, goalY + bobOffset);
-            ctx.fillStyle = "#fbbf24"; 
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "#fbbf24";
-            
-            const s = cellSize * 0.3; 
-            ctx.beginPath();
-            ctx.moveTo(-s, -s);
-            ctx.lineTo(s, -s);
-            ctx.lineTo(s * 0.6, s * 0.5);
-            ctx.lineTo(-s * 0.6, s * 0.5);
-            ctx.closePath();
-            ctx.fill();
-            ctx.fillRect(-s * 0.15, s * 0.5, s * 0.3, s * 0.3);
-            ctx.fillRect(-s * 0.5, s * 0.8, s, s * 0.2);
-            ctx.strokeStyle = "#fbbf24";
-            ctx.lineWidth = 3;
+            const goalX = (mazeSize - 1) * cellSize + cellSize / 2, goalY = (mazeSize - 1) * cellSize + cellSize / 2;
+            const timeNow = performance.now() / 1000, bobOffset = Math.sin(timeNow * 5) * (cellSize * 0.1); 
+            ctx.save(); ctx.translate(goalX, goalY + bobOffset); ctx.fillStyle = "#fbbf24"; ctx.shadowBlur = 15; ctx.shadowColor = "#fbbf24";
+            const s = cellSize * 0.3; ctx.beginPath(); ctx.moveTo(-s, -s); ctx.lineTo(s, -s); ctx.lineTo(s * 0.6, s * 0.5); ctx.lineTo(-s * 0.6, s * 0.5); ctx.closePath(); ctx.fill();
+            ctx.fillRect(-s * 0.15, s * 0.5, s * 0.3, s * 0.3); ctx.fillRect(-s * 0.5, s * 0.8, s, s * 0.2);
+            ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(-s * 0.8, -s * 0.4, s * 0.4, 0, Math.PI * 2); ctx.stroke();
             ctx.beginPath(); ctx.arc(s * 0.8, -s * 0.4, s * 0.4, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
-
-            // Draw Player Trail
             player.trail.forEach((pos, i) => {
-                const ratio = (player.trail.length - i) / player.trail.length;
-                const trailSize = cellSize * 0.7 * ratio;
-                const tx = pos.x * cellSize + cellSize / 2;
-                const ty = pos.y * cellSize + cellSize / 2;
-                ctx.globalAlpha = 0.3 * ratio;
-                ctx.fillStyle = "#22d3ee";
-                ctx.beginPath();
-                ctx.roundRect(tx - trailSize/2, ty - trailSize/2, trailSize, trailSize, 4);
-                ctx.fill();
+                const ratio = (player.trail.length - i) / player.trail.length, trailSize = cellSize * 0.7 * ratio;
+                const tx = pos.x * cellSize + cellSize / 2, ty = pos.y * cellSize + cellSize / 2;
+                ctx.globalAlpha = 0.3 * ratio; ctx.fillStyle = "#22d3ee";
+                ctx.beginPath(); ctx.roundRect(tx - trailSize/2, ty - trailSize/2, trailSize, trailSize, 4); ctx.fill();
             });
             ctx.globalAlpha = 1.0;
-
-            // Draw Player (Clean Blue Square) with directional squash and stretch
-            const px = player.visualX * cellSize + cellSize / 2;
-            const py = player.visualY * cellSize + cellSize / 2;
-            
-            ctx.save();
-            ctx.translate(px, py);
-            ctx.scale(player.scaleX, player.scaleY);
-            
-            const pSize = cellSize * 0.7;
-            ctx.fillStyle = "#22d3ee"; 
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = "#22d3ee";
-            ctx.beginPath();
-            ctx.roundRect(-pSize/2, -pSize/2, pSize, pSize, 8);
-            ctx.fill();
-            
+            const px = player.visualX * cellSize + cellSize / 2, py = player.visualY * cellSize + cellSize / 2;
+            ctx.save(); ctx.translate(px, py); ctx.scale(player.scaleX, player.scaleY);
+            const pSize = cellSize * 0.7; ctx.fillStyle = "#22d3ee"; ctx.shadowBlur = 12; ctx.shadowColor = "#22d3ee";
+            ctx.beginPath(); ctx.roundRect(-pSize/2, -pSize/2, pSize, pSize, 8); ctx.fill();
             ctx.restore();
         }
 
         window.startGame = function() {
-            initCanvas();
-            level = 1;
-            timeLimit = INITIAL_TIME_LIMIT;
-            timeRemaining = timeLimit;
-            overlay.classList.add('hidden');
-            startScreen.classList.add('hidden');
-            gameoverScreen.classList.add('hidden');
-            generateMaze(FIXED_MAZE_SIZE);
-            updateCounterUI(level);
-            gameActive = true;
-            lastTimestamp = performance.now();
+            initCanvas(); level = 1; timeLimit = INITIAL_TIME_LIMIT; timeRemaining = timeLimit;
+            overlay.classList.add('hidden'); startScreen.classList.add('hidden'); gameoverScreen.classList.add('hidden');
+            generateMaze(FIXED_MAZE_SIZE); updateCounterUI(level);
+            gameActive = true; lastTimestamp = performance.now();
             requestAnimationFrame(gameLoop);
         }
 
         window.resetGame = function() {
-            overlay.classList.remove('hidden');
-            startScreen.classList.remove('hidden');
-            gameoverScreen.classList.add('hidden');
-            document.getElementById('name-error').classList.add('hidden');
+            overlay.classList.remove('hidden'); startScreen.classList.remove('hidden'); gameoverScreen.classList.add('hidden');
+            document.getElementById('name-error').classList.add('hidden'); checkDailyStatus();
         }
 
         function nextLevel(first = false) {
-            warningAudio.pause();
-            warningAudio.currentTime = 0;
-            playedWarningSound = false;
+            warningAudio.pause(); warningAudio.currentTime = 0; playedWarningSound = false;
             if (!first) {
                 level++;
-                if (level < 110) {
-                    timeLimit = Math.max(3.0, 10.0 - ((level - 1) * 0.1));
-                } else if (level >= 250) {
-                    timeLimit = 1.5;
-                } else {
-                    let step = Math.floor((level - 110) / 10);
-                    timeLimit = 2.9 - (step * 0.1);
-                }
+                if (level < 110) timeLimit = Math.max(3.0, 10.0 - ((level - 1) * 0.1));
+                else if (level >= 250) timeLimit = 1.5;
+                else { let step = Math.floor((level - 110) / 10); timeLimit = 2.9 - (step * 0.1); }
             }
-            timeRemaining = timeLimit;
-            updateCounterUI(level);
+            timeRemaining = timeLimit; updateCounterUI(level);
             if (limitDisplay) limitDisplay.innerText = timeLimit.toFixed(1);
-            generateMaze(FIXED_MAZE_SIZE);
-            draw();
+            generateMaze(FIXED_MAZE_SIZE); draw();
         }
 
         function gameLoop(timestamp) {
             if (!gameActive) return;
-            const delta = (timestamp - lastTimestamp) / 1000;
-            lastTimestamp = timestamp;
-            
-            // Motion handling
+            const delta = (timestamp - lastTimestamp) / 1000; lastTimestamp = timestamp;
             const lerpSpeed = 0.35; 
-            const prevVisualX = player.visualX;
-            const prevVisualY = player.visualY;
-            
             player.visualX += (player.x - player.visualX) * lerpSpeed;
             player.visualY += (player.y - player.visualY) * lerpSpeed;
-
-            // Handle Directional Squash and Stretch
-            const diffX = Math.abs(player.x - player.visualX);
-            const diffY = Math.abs(player.y - player.visualY);
-            
-            let targetScaleX = 1;
-            let targetScaleY = 1;
-
-            if (diffX > 0.01) {
-                targetScaleX = 1.3;
-                targetScaleY = 0.7;
-            } else if (diffY > 0.01) {
-                targetScaleX = 0.7;
-                targetScaleY = 1.3;
-            }
-
-            player.scaleX += (targetScaleX - player.scaleX) * 0.3;
-            player.scaleY += (targetScaleY - player.scaleY) * 0.3;
-
-            // Update Trail logic
+            const diffX = Math.abs(player.x - player.visualX), diffY = Math.abs(player.y - player.visualY);
+            let targetScaleX = 1, targetScaleY = 1;
+            if (diffX > 0.01) { targetScaleX = 1.3; targetScaleY = 0.7; } else if (diffY > 0.01) { targetScaleX = 0.7; targetScaleY = 1.3; }
+            player.scaleX += (targetScaleX - player.scaleX) * 0.3; player.scaleY += (targetScaleY - player.scaleY) * 0.3;
             if (diffX > 0.001 || diffY > 0.001) {
-                player.trail.unshift({x: player.visualX, y: player.visualY});
-                if (player.trail.length > 10) player.trail.pop();
-            } else {
-                if (player.trail.length > 0) player.trail.pop();
-            }
-
+                player.trail.unshift({x: player.visualX, y: player.visualY}); if (player.trail.length > 10) player.trail.pop();
+            } else if (player.trail.length > 0) player.trail.pop();
             timeRemaining -= delta;
-            if (timeRemaining <= 0) {
-                timeRemaining = 0;
-                updateUI();
-                endGame();
-                return;
-            }
-            updateUI();
-            draw();
-            requestAnimationFrame(gameLoop);
+            if (timeRemaining <= 0) { timeRemaining = 0; updateUI(); endGame(); return; }
+            updateUI(); draw(); requestAnimationFrame(gameLoop);
         }
 
         function updateUI() {
-            if (!timerDisplay) return;
-            timerDisplay.innerText = timeRemaining.toFixed(2);
+            if (!timerDisplay) return; timerDisplay.innerText = timeRemaining.toFixed(2);
             if (timeRemaining < 3) {
-                timerDisplay.style.color = "#ef4444"; 
-                timerDisplay.style.textShadow = "0 0 15px rgba(239, 68, 68, 0.6)";
-                if (!playedWarningSound && gameActive) {
-                    warningAudio.play().catch(() => {});
-                    playedWarningSound = true;
-                }
-            } else {
-                timerDisplay.style.color = "#22d3ee"; 
-                timerDisplay.style.textShadow = "0 0 15px rgba(34, 211, 238, 0.6)";
-            }
+                timerDisplay.style.color = "#ef4444"; timerDisplay.style.textShadow = "0 0 15px rgba(239, 68, 68, 0.6)";
+                if (!playedWarningSound && gameActive) { warningAudio.play().catch(() => {}); playedWarningSound = true; }
+            } else { timerDisplay.style.color = "#22d3ee"; timerDisplay.style.textShadow = "0 0 15px rgba(34, 211, 238, 0.6)"; }
         }
 
         function endGame() {
-            gameActive = false;
-            warningAudio.pause();
-            warningAudio.currentTime = 0;
-            finalLevelSpan.innerText = level;
-            overlay.classList.remove('hidden');
-            gameoverScreen.classList.remove('hidden');
-            document.getElementById('submit-btn').disabled = false;
-            document.getElementById('submit-btn').innerText = "Submit Score";
+            gameActive = false; warningAudio.pause(); warningAudio.currentTime = 0;
+            finalLevelSpan.innerText = level; overlay.classList.remove('hidden'); gameoverScreen.classList.remove('hidden');
+            document.getElementById('submit-btn').disabled = false; document.getElementById('submit-btn').innerText = "Submit Score";
         }
 
         window.submitScore = async function() {
             if (!currentUser || !db) return;
             const name = document.getElementById('player-name').value.trim();
-            const submitBtn = document.getElementById('submit-btn');
-            const errorLabel = document.getElementById('name-error');
-            errorLabel.classList.add('hidden');
+            const submitBtn = document.getElementById('submit-btn'), errorLabel = document.getElementById('name-error');
             if (!isNameClean(name)) { errorLabel.classList.remove('hidden'); return; }
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true; submitBtn.innerText = "Saving...";
             try {
-                const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                await addDoc(scoresCol, { 
-                    name: name, 
-                    level: level, 
-                    timestamp: Date.now(),
-                    uid: currentUser.uid 
-                });
-                submitBtn.innerText = "Saved!";
-                setTimeout(() => resetGame(), 1000);
-            } catch (e) {
-                submitBtn.innerText = "Error!";
-                submitBtn.disabled = false;
-            }
+                // Determine collection based on mode (reset strategy)
+                const collectionName = gameMode === 'daily' ? `daily_race_${getDailyCollectionTag()}` : 'leaderboard';
+                const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', collectionName);
+                await addDoc(scoresCol, { name: name, level: level, timestamp: Date.now(), uid: currentUser.uid, mode: gameMode });
+                if (gameMode === 'daily') {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const dailyDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'daily');
+                    await setDoc(dailyDocRef, { lastDailyPlayed: todayStr }, { merge: true });
+                    hasPlayedDailyToday = true;
+                }
+                submitBtn.innerText = "Saved!"; setTimeout(() => resetGame(), 1000);
+            } catch (e) { submitBtn.innerText = "Error!"; submitBtn.disabled = false; }
         }
 
         window.shareScore = function() {
-            const currentLevel = level;
-            const shareText = `I just got a new High Score of ${currentLevel} on Maze Speedrun! Check it out at https://games.damvan.ca`;
-            const shareBtn = document.getElementById('share-btn');
-            if (navigator.share) {
-                navigator.share({ title: 'Maze Speedrun', text: shareText }).catch(() => { copyToClipboardFallback(shareText, shareBtn); });
-            } else { copyToClipboardFallback(shareText, shareBtn); }
+            const shareText = `I reached Level ${level} in ${gameMode === 'daily' ? "Daily Race" : "Classic Run"} on Maze Speedrun! 🏁 https://games.damvan.ca`;
+            if (navigator.share) { navigator.share({ title: 'Maze Speedrun', text: shareText }); } 
+            else { copyToClipboardFallback(shareText, document.getElementById('share-btn')); }
         };
 
         function copyToClipboardFallback(text, button) {
-            const input = document.createElement('textarea');
-            input.value = text;
-            input.style.position = 'fixed'; input.style.opacity = '0';
-            document.body.appendChild(input);
-            input.select();
-            try {
-                document.execCommand('copy');
-                const original = button.innerText;
-                button.innerText = "Copied to Clipboard!";
-                setTimeout(() => button.innerText = original, 2000);
-            } catch (err) {}
+            const input = document.createElement('textarea'); input.value = text; input.style.position = 'fixed'; input.style.opacity = '0';
+            document.body.appendChild(input); input.select();
+            try { document.execCommand('copy'); button.innerText = "Copied!"; setTimeout(() => button.innerText = "Share Result", 2000); } catch (err) {}
             document.body.removeChild(input);
         }
 
-        function setupLeaderboardListener() {
+        function setupListeners() {
             if (!db) return;
-            const leaderboardCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            leaderboardUnsubscribe = onSnapshot(leaderboardCol, (snapshot) => {
-                const spinner = document.getElementById('loading-spinner');
-                if (spinner) spinner.style.display = 'none';
-                const scores = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    scores.push(data);
-                });
-                globalScores = scores;
+            // Listener for Classic Leaderboard
+            const classicCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+            onSnapshot(classicCol, (snap) => {
+                classicScores = snap.docs.map(d => d.data());
                 updateLeaderboardUI();
-            }, (err) => {
+            });
+            // Listener for Daily Leaderboard
+            const dailyCol = collection(db, 'artifacts', appId, 'public', 'data', `daily_race_${getDailyCollectionTag()}`);
+            onSnapshot(dailyCol, (snap) => {
+                dailyScores = snap.docs.map(d => d.data());
                 const spinner = document.getElementById('loading-spinner');
                 if (spinner) spinner.style.display = 'none';
+                updateLeaderboardUI();
             });
         }
 
         window.setTab = function(tab) {
-            activeTab = tab;
-            leaderboardDisplayLimit = 10; 
-            
-            document.getElementById('tab-all').classList.remove('active');
-            document.getElementById('tab-today').classList.remove('active');
-            document.getElementById('tab-personal').classList.remove('active');
-            document.getElementById('tab-' + tab).classList.add('active');
-            
+            activeTab = tab; leaderboardDisplayLimit = 10; 
+            ['all','daily_race','personal'].forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t === tab));
             updateLeaderboardUI();
         };
 
         function updateLeaderboardUI() {
             if (!leaderboardList) return;
-            
-            let filteredScores = [...globalScores];
-            const startOfToday = new Date().setHours(0,0,0,0);
-
-            if (activeTab === 'today') {
-                filteredScores = filteredScores.filter(s => s.timestamp >= startOfToday);
-            } else if (activeTab === 'personal') {
-                if (currentUser) {
-                    filteredScores = filteredScores.filter(s => s.uid === currentUser.uid);
-                } else {
-                    filteredScores = [];
-                }
+            let filtered = [];
+            if (activeTab === 'daily_race') { filtered = [...dailyScores]; } 
+            else if (activeTab === 'personal') { filtered = classicScores.filter(s => s.uid === currentUser.uid); } 
+            else { filtered = [...classicScores]; }
+            filtered.sort((a, b) => b.level - a.level || a.timestamp - b.timestamp);
+            if (filtered.length === 0) {
+                leaderboardList.innerHTML = `<p class="text-slate-500 italic text-center py-4">No scores found...</p>`;
+                if (seeMoreBtn) seeMoreBtn.classList.add('hidden'); return;
             }
-
-            filteredScores.sort((a, b) => b.level - a.level || a.timestamp - b.timestamp);
-
-            if (filteredScores.length === 0) {
-                const msg = activeTab === 'personal' ? "No personal runs yet..." : "No global runs yet...";
-                leaderboardList.innerHTML = `<p class="text-slate-500 italic text-center py-4">${msg}</p>`;
-                if (seeMoreBtn) seeMoreBtn.classList.add('hidden');
-                return;
-            }
-
-            const displayScores = filteredScores.slice(0, leaderboardDisplayLimit);
-            
-            /**
-             * 🔒 Security Fix: Using escapeHTML for player names to prevent HTML Injection/XSS
-             */
-            leaderboardList.innerHTML = displayScores.map((s, i) => `
+            leaderboardList.innerHTML = filtered.slice(0, leaderboardDisplayLimit).map((s, i) => `
                 <div class="flex justify-between items-center py-2 border-b border-slate-800 last:border-0">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <span class="${i < 3 ? 'text-cyan-400 font-black' : 'text-slate-600'}">#${i + 1}</span>
-                        <span class="text-slate-300 truncate font-bold">${escapeHTML(s.name || "Anonymous")}</span>
+                        <span class="text-slate-300 truncate font-bold">${escapeHTML(s.name || "Anon")}</span>
                     </div>
                     <span class="text-cyan-500 font-bold ml-2">Lvl ${s.level}</span>
-                </div>
-            `).join('');
-
-            if (seeMoreBtn) {
-                if (filteredScores.length > 10 && leaderboardDisplayLimit === 10) seeMoreBtn.classList.remove('hidden');
-                else seeMoreBtn.classList.add('hidden');
-            }
+                </div>`).join('');
+            if (seeMoreBtn) seeMoreBtn.classList.toggle('hidden', filtered.length <= 10 || leaderboardDisplayLimit > 10);
         }
 
-        window.expandLeaderboard = function() {
-            leaderboardDisplayLimit = 50;
-            updateLeaderboardUI();
-        }
+        window.expandLeaderboard = () => { leaderboardDisplayLimit = 50; updateLeaderboardUI(); };
 
         function movePlayer(dx, dy) {
             if (!gameActive) return;
             const cell = maze[player.y][player.x];
             if ((dx === 1 && cell.walls[1]) || (dx === -1 && cell.walls[3]) || (dy === 1 && cell.walls[2]) || (dy === -1 && cell.walls[0])) return;
-            
             player.x += dx; player.y += dy;
             if (player.x === mazeSize - 1 && player.y === mazeSize - 1) {
-                warningAudio.pause();
-                warningAudio.currentTime = 0;
-                goalAudio.currentTime = 0;
-                goalAudio.play().catch(() => {});
-                nextLevel();
+                warningAudio.pause(); warningAudio.currentTime = 0; goalAudio.currentTime = 0; goalAudio.play().catch(() => {}); nextLevel();
             }
         }
 
@@ -801,19 +655,8 @@
             if (['a', 'arrowleft'].includes(key)) movePlayer(-1, 0);
             if (['d', 'arrowright'].includes(key)) movePlayer(1, 0);
         });
-
-        const resizeObserver = new ResizeObserver(() => {
-            initCanvas();
-            if (maze && maze.length > 0) draw();
-        });
-        
-        window.onload = () => {
-            initCanvas();
-            generateMaze(FIXED_MAZE_SIZE);
-            draw();
-            updateCounterUI(1);
-            resizeObserver.observe(canvasContainer);
-        };
+        const resizeObserver = new ResizeObserver(() => { window.requestAnimationFrame(() => { initCanvas(); if (maze && maze.length > 0) draw(); }); });
+        window.onload = () => { initCanvas(); generateMaze(FIXED_MAZE_SIZE); draw(); updateCounterUI(1); resizeObserver.observe(canvasContainer); };
     </script>
 </body>
 </html>
