@@ -260,7 +260,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, getDoc, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const githubConfig = {
             apiKey: "AIzaSyC8DJWDZ6gBArzoGpbQVVyTLSHiVM0KXTM",
@@ -291,7 +291,6 @@
         let classicScores = [];
         let dailyScores = [];
         let leaderboardUnsubscribe = null;
-        let dailyUnsubscribe = null;
         let leaderboardDisplayLimit = 10;
         let activeTab = 'all';
         let gameMode = 'classic'; 
@@ -562,10 +561,23 @@
             if (!isNameClean(name)) { errorLabel.classList.remove('hidden'); return; }
             submitBtn.disabled = true; submitBtn.innerText = "Saving...";
             try {
-                // Determine collection based on mode (reset strategy)
                 const collectionName = gameMode === 'daily' ? `daily_race_${getDailyCollectionTag()}` : 'leaderboard';
                 const scoresCol = collection(db, 'artifacts', appId, 'public', 'data', collectionName);
-                await addDoc(scoresCol, { name: name, level: level, timestamp: Date.now(), uid: currentUser.uid, mode: gameMode });
+                
+                const scoreData = { 
+                    name: name, level: level, timestamp: Date.now(), 
+                    uid: currentUser.uid, mode: gameMode 
+                };
+
+                // Add expiration for TTL mapping (even if billing is off, good practice)
+                if (gameMode === 'daily') {
+                    const expireDate = new Date();
+                    expireDate.setHours(expireDate.getHours() + 24);
+                    scoreData.expireAt = Timestamp.fromDate(expireDate);
+                }
+
+                await addDoc(scoresCol, scoreData);
+                
                 if (gameMode === 'daily') {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const dailyDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'stats', 'daily');
@@ -573,7 +585,11 @@
                     hasPlayedDailyToday = true;
                 }
                 submitBtn.innerText = "Saved!"; setTimeout(() => resetGame(), 1000);
-            } catch (e) { submitBtn.innerText = "Error!"; submitBtn.disabled = false; }
+            } catch (e) { 
+                console.error("Submission Error:", e);
+                submitBtn.innerText = "Error!"; 
+                submitBtn.disabled = false; 
+            }
         }
 
         window.shareScore = function() {
@@ -591,13 +607,11 @@
 
         function setupListeners() {
             if (!db) return;
-            // Listener for Classic Leaderboard
             const classicCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
             onSnapshot(classicCol, (snap) => {
                 classicScores = snap.docs.map(d => d.data());
                 updateLeaderboardUI();
             });
-            // Listener for Daily Leaderboard
             const dailyCol = collection(db, 'artifacts', appId, 'public', 'data', `daily_race_${getDailyCollectionTag()}`);
             onSnapshot(dailyCol, (snap) => {
                 dailyScores = snap.docs.map(d => d.data());
