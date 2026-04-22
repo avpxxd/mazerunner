@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Device Sensor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overscroll-behavior-y: contain; /* Prevents pull-to-refresh on mobile */
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 3D Phone Visualizer Styles */
+        .scene {
+            width: 100%;
+            height: 200px;
+            perspective: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .phone-model {
+            width: 80px;
+            height: 160px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+        .phone-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            border: 2px solid #475569;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .phone-front {
+            background: #1e293b;
+            transform: translateZ(5px);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .phone-front::after {
+            content: '';
+            width: 40px;
+            height: 80px;
+            background: #334155;
+            border-radius: 4px;
+        }
+        .phone-back {
+            background: #334155;
+            transform: rotateY(180deg) translateZ(5px);
+        }
+        .phone-left {
+            width: 10px;
+            background: #475569;
+            transform: rotateY(-90deg) translateZ(40px);
+            left: 50%;
+            margin-left: -5px;
+        }
+        .phone-right {
+            width: 10px;
+            background: #475569;
+            transform: rotateY(90deg) translateZ(40px);
+            left: 50%;
+            margin-left: -5px;
+        }
+        .phone-top {
+            height: 10px;
+            background: #475569;
+            transform: rotateX(90deg) translateZ(80px);
+            top: 50%;
+            margin-top: -5px;
+        }
+        .phone-bottom {
+            height: 10px;
+            background: #475569;
+            transform: rotateX(-90deg) translateZ(80px);
+            top: 50%;
+            margin-top: -5px;
+        }
+
+        /* Value highlighting */
+        .val-x { color: #f87171; } /* Red for X */
+        .val-y { color: #4ade80; } /* Green for Y */
+        .val-z { color: #60a5fa; } /* Blue for Z */
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <div class="w-full max-w-4xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
+                Sensor Dashboard
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base">Real-time telemetry from your device hardware</p>
+        </header>
+
+        <!-- Permission & Controls Area -->
+        <div id="controls-area" class="mb-8 flex flex-col items-center">
+            <div id="message-box" class="hidden w-full max-w-md p-4 mb-4 rounded-lg bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 text-sm text-center">
+                <!-- Messages go here -->
+            </div>
+            
+            <button id="start-btn" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-full font-bold text-lg shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                Activate Sensors
+            </button>
+            <p class="text-xs text-slate-500 mt-3 text-center max-w-xs">Requires HTTPS and may require permission on iOS devices to access gyroscope and accelerometer.</p>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div id="dashboard" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 opacity-50 pointer-events-none transition-opacity duration-500">
+            
+            <!-- Orientation Card -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col">
+                <div class="flex items-center gap-2 mb-4 text-emerald-400 border-b border-slate-700 pb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                    <h2 class="font-semibold text-lg">Device Orientation</h2>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 mb-6">
+                    <div class="bg-slate-800/50 p-3 rounded-lg text-center">
+                        <div class="text-xs text-slate-400 mb-1">Alpha (Z)</div>
+                        <div class="text-xl font-mono font-bold val-z" id="val-alpha">0.0°</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg text-center">
+                        <div class="text-xs text-slate-400 mb-1">Beta (X)</div>
+                        <div class="text-xl font-mono font-bold val-x" id="val-beta">0.0°</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg text-center">
+                        <div class="text-xs text-slate-400 mb-1">Gamma (Y)</div>
+                        <div class="text-xl font-mono font-bold val-y" id="val-gamma">0.0°</div>
+                    </div>
+                </div>
+
+                <!-- 3D Visualization -->
+                <div class="scene bg-slate-900/50 rounded-xl mt-auto border border-slate-800 relative overflow-hidden">
+                    <div class="absolute top-2 left-2 text-[10px] text-slate-500 uppercase tracking-wider">Live 3D View</div>
+                    <div class="phone-model" id="phone-model">
+                        <div class="phone-face phone-front"></div>
+                        <div class="phone-face phone-back"></div>
+                        <div class="phone-face phone-right"></div>
+                        <div class="phone-face phone-left"></div>
+                        <div class="phone-face phone-top"></div>
+                        <div class="phone-face phone-bottom"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Motion / Accelerometer Card -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col">
+                <div class="flex items-center gap-2 mb-4 text-blue-400 border-b border-slate-700 pb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m8 7 4-4 4 4"/><path d="m8 17 4 4 4-4"/><path d="M3 12h18"/><path d="m7 8-4 4 4 4"/><path d="m17 8 4 4-4 4"/></svg>
+                    <h2 class="font-semibold text-lg">Accelerometer (m/s²)</h2>
+                </div>
+                
+                <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Including Gravity</h3>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">X Axis</div>
+                        <div class="text-lg font-mono font-bold val-x" id="val-acc-grav-x">0.00</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">Y Axis</div>
+                        <div class="text-lg font-mono font-bold val-y" id="val-acc-grav-y">0.00</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">Z Axis</div>
+                        <div class="text-lg font-mono font-bold val-z" id="val-acc-grav-z">0.00</div>
+                    </div>
+                </div>
+
+                <h3 class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2 mt-2">Excluding Gravity (Linear)</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">X Axis</div>
+                        <div class="text-lg font-mono font-bold val-x" id="val-acc-x">0.00</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">Y Axis</div>
+                        <div class="text-lg font-mono font-bold val-y" id="val-acc-y">0.00</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg flex flex-col justify-center items-center">
+                        <div class="text-xs text-slate-400 mb-1">Z Axis</div>
+                        <div class="text-lg font-mono font-bold val-z" id="val-acc-z">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geolocation Card -->
+            <div class="glass-card rounded-2xl p-5 md:col-span-2">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-2">
+                    <div class="flex items-center gap-2 text-violet-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <h2 class="font-semibold text-lg">Geolocation & Speed</h2>
+                    </div>
+                    <div id="geo-status" class="flex items-center gap-2 text-xs">
+                        <span class="relative flex h-2.5 w-2.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                        </span>
+                        <span class="text-slate-400">Waiting...</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-slate-800/50 p-3 rounded-lg">
+                        <div class="text-xs text-slate-400 mb-1">Latitude</div>
+                        <div class="text-lg font-mono font-bold text-white" id="val-lat">---</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg">
+                        <div class="text-xs text-slate-400 mb-1">Longitude</div>
+                        <div class="text-lg font-mono font-bold text-white" id="val-lng">---</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg">
+                        <div class="text-xs text-slate-400 mb-1">Accuracy</div>
+                        <div class="text-lg font-mono font-bold text-white" id="val-acc">---</div>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg">
+                        <div class="text-xs text-slate-400 mb-1">Speed (m/s)</div>
+                        <div class="text-lg font-mono font-bold text-emerald-400" id="val-speed">---</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // State object to hold latest sensor data
+        const state = {
+            orientation: { alpha: 0, beta: 0, gamma: 0 },
+            motion: { x: 0, y: 0, z: 0 },
+            motionGrav: { x: 0, y: 0, z: 0 },
+            location: { lat: null, lng: null, accuracy: null, speed: null }
+        };
+
+        // DOM Elements
+        const elements = {
+            alpha: document.getElementById('val-alpha'),
+            beta: document.getElementById('val-beta'),
+            gamma: document.getElementById('val-gamma'),
+            accX: document.getElementById('val-acc-x'),
+            accY: document.getElementById('val-acc-y'),
+            accZ: document.getElementById('val-acc-z'),
+            accGravX: document.getElementById('val-acc-grav-x'),
+            accGravY: document.getElementById('val-acc-grav-y'),
+            accGravZ: document.getElementById('val-acc-grav-z'),
+            lat: document.getElementById('val-lat'),
+            lng: document.getElementById('val-lng'),
+            geoAcc: document.getElementById('val-acc'),
+            speed: document.getElementById('val-speed'),
+            phoneModel: document.getElementById('phone-model'),
+            startBtn: document.getElementById('start-btn'),
+            dashboard: document.getElementById('dashboard'),
+            msgBox: document.getElementById('message-box'),
+            geoStatusLabel: document.querySelector('#geo-status span:last-child'),
+            geoStatusDot: document.querySelector('#geo-status span:first-child span.bg-red-500'),
+            geoStatusPing: document.querySelector('#geo-status span:first-child span.animate-ping')
+        };
+
+        // Utility: Show message
+        function showMessage(msg, type = 'warning') {
+            elements.msgBox.textContent = msg;
+            elements.msgBox.classList.remove('hidden');
+            if (type === 'error') {
+                elements.msgBox.classList.replace('bg-yellow-500/20', 'bg-red-500/20');
+                elements.msgBox.classList.replace('border-yellow-500/50', 'border-red-500/50');
+                elements.msgBox.classList.replace('text-yellow-200', 'text-red-200');
+            }
+        }
+
+        // --- Render Loop (Optimization for performance) ---
+        // Instead of updating the DOM on every sensor event (which can fire 60 times a second),
+        // we store the data in the `state` object and update the DOM in sync with screen refresh.
+        function updateUI() {
+            // Update Orientation Text
+            elements.alpha.textContent = state.orientation.alpha.toFixed(1) + '°';
+            elements.beta.textContent = state.orientation.beta.toFixed(1) + '°';
+            elements.gamma.textContent = state.orientation.gamma.toFixed(1) + '°';
+
+            // Update 3D Phone Model
+            // Beta handles X-axis rotation (front/back tilt)
+            // Gamma handles Y-axis rotation (left/right tilt)
+            // Alpha handles Z-axis rotation (compass direction/twist)
+            elements.phoneModel.style.transform = `
+                rotateZ(${-state.orientation.alpha}deg) 
+                rotateX(${state.orientation.beta}deg) 
+                rotateY(${state.orientation.gamma}deg)
+            `;
+
+            // Update Motion Text
+            elements.accX.textContent = state.motion.x.toFixed(2);
+            elements.accY.textContent = state.motion.y.toFixed(2);
+            elements.accZ.textContent = state.motion.z.toFixed(2);
+
+            elements.accGravX.textContent = state.motionGrav.x.toFixed(2);
+            elements.accGravY.textContent = state.motionGrav.y.toFixed(2);
+            elements.accGravZ.textContent = state.motionGrav.z.toFixed(2);
+
+            // Update Location
+            if (state.location.lat !== null) {
+                elements.lat.textContent = state.location.lat.toFixed(5) + '°';
+                elements.lng.textContent = state.location.lng.toFixed(5) + '°';
+                elements.geoAcc.textContent = '±' + state.location.accuracy.toFixed(0) + 'm';
+                elements.speed.textContent = state.location.speed !== null ? state.location.speed.toFixed(1) : '0.0';
+            }
+
+            requestAnimationFrame(updateUI);
+        }
+
+        // --- Sensor Event Handlers ---
+        function handleOrientation(event) {
+            state.orientation.alpha = event.alpha || 0;
+            state.orientation.beta = event.beta || 0;
+            state.orientation.gamma = event.gamma || 0;
+        }
+
+        function handleMotion(event) {
+            if (event.acceleration) {
+                state.motion.x = event.acceleration.x || 0;
+                state.motion.y = event.acceleration.y || 0;
+                state.motion.z = event.acceleration.z || 0;
+            }
+            if (event.accelerationIncludingGravity) {
+                state.motionGrav.x = event.accelerationIncludingGravity.x || 0;
+                state.motionGrav.y = event.accelerationIncludingGravity.y || 0;
+                state.motionGrav.z = event.accelerationIncludingGravity.z || 0;
+            }
+        }
+
+        // --- Geolocation Setup ---
+        function startGeolocation() {
+            if (!navigator.geolocation) {
+                showMessage("Geolocation is not supported by your browser.", "error");
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    state.location.lat = position.coords.latitude;
+                    state.location.lng = position.coords.longitude;
+                    state.location.accuracy = position.coords.accuracy;
+                    state.location.speed = position.coords.speed; // May be null if stationary
+
+                    // Update UI Status indicator
+                    elements.geoStatusLabel.textContent = "Active";
+                    elements.geoStatusLabel.classList.replace('text-slate-400', 'text-emerald-400');
+                    elements.geoStatusDot.classList.replace('bg-red-500', 'bg-emerald-500');
+                    elements.geoStatusPing.classList.replace('bg-red-400', 'bg-emerald-400');
+                },
+                (error) => {
+                    console.warn("Geolocation error:", error.message);
+                    elements.geoStatusLabel.textContent = "Error/Denied";
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                }
+            );
+        }
+
+        // --- Main Initialization ---
+        async function requestSensors() {
+            try {
+                // Check for iOS 13+ permission pattern
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        window.addEventListener('devicemotion', handleMotion);
+                    } else {
+                        showMessage("Permission to access device orientation was denied.", "error");
+                        return;
+                    }
+                } else {
+                    // Non-iOS 13+ devices (Android, older iOS, desktop)
+                    window.addEventListener('deviceorientation', handleOrientation);
+                    window.addEventListener('devicemotion', handleMotion);
+                }
+
+                // Start GPS
+                startGeolocation();
+
+                // UI Transitions
+                elements.startBtn.classList.add('hidden');
+                elements.msgBox.classList.add('hidden');
+                elements.dashboard.classList.remove('opacity-50', 'pointer-events-none');
+                
+                // Start animation loop
+                requestAnimationFrame(updateUI);
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Error accessing sensors. Ensure you are on a secure connection (HTTPS).", "error");
+            }
+        }
+
+        // Attach listener to button
+        elements.startBtn.addEventListener('click', requestSensors);
+
+    </script>
+</body>
+</html>
