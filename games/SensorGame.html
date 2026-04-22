@@ -299,10 +299,22 @@
             // Gamma handles Y-axis rotation (left/right tilt)
             // Alpha handles Z-axis rotation (compass direction/twist)
             elements.phoneModel.style.transform = `
-                rotateZ(${-state.orientation.alpha}deg) 
-                rotateX(${state.orientation.beta}deg) 
-                rotateY(${state.orientation.gamma}deg)
-            `;
+                // Offset beta by 90 so holding it upright physically (90°) = upright in CSS (0°).
+const pitch = state.orientation.beta - 90;
+
+// Gamma is your left/right tilt. We map it to Z so it acts like a steering wheel.
+const roll = -state.orientation.gamma; 
+
+// Alpha is compass spin. Map to Y so it spins the model on its vertical axis.
+const yaw = -state.orientation.alpha;
+
+// The order is CRITICAL here: Z (roll), then X (pitch), then Y (yaw)
+elements.phoneModel.style.transform = `
+    rotateZ(${roll}deg) 
+    rotateX(${pitch}deg) 
+    rotateY(${yaw}deg)
+`;
+
 
             // Update Motion Text
             elements.accX.textContent = state.motion.x.toFixed(2);
