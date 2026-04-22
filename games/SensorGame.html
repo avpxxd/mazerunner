@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -294,27 +295,22 @@
             elements.beta.textContent = state.orientation.beta.toFixed(1) + '°';
             elements.gamma.textContent = state.orientation.gamma.toFixed(1) + '°';
 
-            // Update 3D Phone Model
-            // Beta handles X-axis rotation (front/back tilt)
-            // Gamma handles Y-axis rotation (left/right tilt)
-            // Alpha handles Z-axis rotation (compass direction/twist)
+            // Update 3D Phone Model Math Mapping
+            // Offset beta by 90 so holding it upright physically (90°) = upright in CSS (0°).
+            const pitch = state.orientation.beta - 90;
+
+            // Gamma is your left/right tilt. We map it to Z so it acts like a steering wheel.
+            const roll = -state.orientation.gamma; 
+
+            // Alpha is compass spin. Map to Y so it spins the model on its vertical axis.
+            const yaw = -state.orientation.alpha;
+
+            // The order is CRITICAL here: Z (roll), then X (pitch), then Y (yaw)
             elements.phoneModel.style.transform = `
-                // Offset beta by 90 so holding it upright physically (90°) = upright in CSS (0°).
-const pitch = state.orientation.beta - 90;
-
-// Gamma is your left/right tilt. We map it to Z so it acts like a steering wheel.
-const roll = -state.orientation.gamma; 
-
-// Alpha is compass spin. Map to Y so it spins the model on its vertical axis.
-const yaw = -state.orientation.alpha;
-
-// The order is CRITICAL here: Z (roll), then X (pitch), then Y (yaw)
-elements.phoneModel.style.transform = `
-    rotateZ(${roll}deg) 
-    rotateX(${pitch}deg) 
-    rotateY(${yaw}deg)
-`;
-
+                rotateZ(${roll}deg) 
+                rotateX(${pitch}deg) 
+                rotateY(${yaw}deg)
+            `;
 
             // Update Motion Text
             elements.accX.textContent = state.motion.x.toFixed(2);
