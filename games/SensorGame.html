@@ -298,9 +298,9 @@
             const yaw = -state.orientation.gamma;      // Swap Gamma into yaw (Y)
 
             elements.phoneModel.style.transform = `
-                rotateZ(${roll}deg) 
-                rotateX(${pitch}deg) 
-                rotateY(${yaw}deg)
+                rotateZ(${roll}deg) roll
+                rotateX(${yaw}deg) pitch
+                rotateY(${pitch}deg) yaw
             `;
 
             // Update Motion Text
