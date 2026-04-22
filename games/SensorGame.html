@@ -290,38 +290,35 @@
         // Instead of updating the DOM on every sensor event (which can fire 60 times a second),
         // we store the data in the `state` object and update the DOM in sync with screen refresh.
         function updateUI() {
-            // Update Orientation Text
+            // Update Text
             elements.alpha.textContent = state.orientation.alpha.toFixed(1) + '°';
             elements.beta.textContent = state.orientation.beta.toFixed(1) + '°';
             elements.gamma.textContent = state.orientation.gamma.toFixed(1) + '°';
 
-            // Update 3D Phone Model Math Mapping
-            // Offset beta by 90 so holding it upright physically (90°) = upright in CSS (0°).
-            const pitch = state.orientation.beta - 90;
+            // The Mapping for "Flat Start"
+            // Alpha (Record spin) -> Rotate around Y (vertical axis)
+            const yaw = state.orientation.alpha; 
+            // Beta (Front/Back tilt) -> Rotate around X
+            const pitch = state.orientation.beta;
+            // Gamma (Left/Right tilt) -> Rotate around Z
+            const roll = state.orientation.gamma;
 
-            // Gamma is your left/right tilt. We map it to Z so it acts like a steering wheel.
-            const roll = -state.orientation.gamma; 
-
-            // Alpha is compass spin. Map to Y so it spins the model on its vertical axis.
-            const yaw = -state.orientation.alpha;
-
-            // The order is CRITICAL here: Z (roll), then X (pitch), then Y (yaw)
+            // Apply transforms in an order that prevents "Gimbal Lock"
+            // We rotate Y (Alpha) first, then the tilts.
             elements.phoneModel.style.transform = `
-                rotateZ(${roll}deg) 
-                rotateX(${pitch}deg) 
-                rotateY(${yaw}deg)
+                rotateY(${-yaw}deg)
+                rotateX(${pitch}deg)
+                rotateZ(${roll}deg)
             `;
 
-            // Update Motion Text
+            // ... (rest of the function for motion and location remains the same)
             elements.accX.textContent = state.motion.x.toFixed(2);
             elements.accY.textContent = state.motion.y.toFixed(2);
             elements.accZ.textContent = state.motion.z.toFixed(2);
-
             elements.accGravX.textContent = state.motionGrav.x.toFixed(2);
             elements.accGravY.textContent = state.motionGrav.y.toFixed(2);
             elements.accGravZ.textContent = state.motionGrav.z.toFixed(2);
 
-            // Update Location
             if (state.location.lat !== null) {
                 elements.lat.textContent = state.location.lat.toFixed(5) + '°';
                 elements.lng.textContent = state.location.lng.toFixed(5) + '°';
